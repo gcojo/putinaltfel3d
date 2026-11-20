@@ -4,7 +4,12 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 
+// Pe GitHub Pages site-ul stă într-un subfolder (ex. /putinaltfel3d/); workflow-ul setează BASE_PATH.
+// Local, Firebase, Cloudflare, Netlify: rădăcina „/”.
+const base = process.env.BASE_PATH || '/';
+
 export default defineConfig({
+  base,
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
@@ -22,7 +27,8 @@ export default defineConfig({
         background_color: '#FAF7F1',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -30,7 +36,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Datele din Supabase nu se pun în cache: aplicația arată mereu date proaspete.
         runtimeCaching: [],

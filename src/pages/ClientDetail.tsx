@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Mail, MapPin, Pencil, Phone, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, Mail, MapPin, MessageCircle, Pencil, Phone, Plus, Trash2 } from 'lucide-react';
 import * as api from '@/lib/api';
+import { waLink } from '@/lib/contact';
 import { useData } from '@/hooks/useData';
 import { amountDue, orderProfit } from '@/lib/calc';
 import { clientStats } from '@/lib/stats';
@@ -68,6 +69,11 @@ export default function ClientDetailPage() {
             {client.telefon && (
               <a href={`tel:${client.telefon.replace(/\s/g, '')}`} className="flex items-center gap-1.5 hover:text-fg">
                 <Phone className="h-3.5 w-3.5" /> {client.telefon}
+              </a>
+            )}
+            {waLink(client.telefon, '') && (
+              <a href={waLink(client.telefon, `Bună ${client.nume.split(' ')[0]}!`)!} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-fg">
+                <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
               </a>
             )}
             {client.email && (

@@ -1,7 +1,8 @@
 /** Raport lățime/înălțime al inimioarei (imaginile sunt deja rotite cu −6°, ca sticker). */
 const RATIO = 95 / 128;
 /** Variante pre-randate: browserul alege fișierul potrivit densității ecranului, fără blur de redimensionare. */
-const SRCSET = '/heart-128.png 95w, /heart-256.png 189w, /heart-512.png 377w';
+const B = import.meta.env.BASE_URL; // „/” sau „/putinaltfel3d/” pe GitHub Pages
+const SRCSET = `${B}heart-128.png 95w, ${B}heart-256.png 189w, ${B}heart-512.png 377w`;
 
 /**
  * Logo „#putinALTFEL” – inimioara-sticker de pe razvantofan.ro.
@@ -11,7 +12,7 @@ export function Logo({ size = 24, className = '', still = false }: { size?: numb
   const width = Math.round(size * RATIO);
   return (
     <img
-      src="/heart-256.png"
+      src={`${B}heart-256.png`}
       srcSet={SRCSET}
       sizes={`${width}px`}
       alt=""

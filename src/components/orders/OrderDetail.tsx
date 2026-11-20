@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Copy, MessageCircle, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
+import { messageTemplates, telLink, waLink } from '@/lib/contact';
 import type { Order, OrderEvent, PaymentMethod } from '@/types/db';
 import * as api from '@/lib/api';
 import { amountDue, electricityCost, orderProfit } from '@/lib/calc';
@@ -31,11 +32,13 @@ function Section({ title, children, right }: { title: string; children: React.Re
 }
 
 export function OrderDetailPanel({
-  orderId, onClose, onEdit,
+  orderId, onClose, onEdit, onDuplicate,
 }: {
   orderId: number | null;
   onClose: () => void;
   onEdit: (o: Order) => void;
+  /** comandă nouă precompletată cu datele acesteia (comenzi repetate) */
+  onDuplicate: (prefill: Partial<Order>) => void;
 }) {
   const { orders, payments, settings, schedule, clientById, reload, now } = useData();
   const { toast, confirm } = useFeedback();
@@ -78,6 +81,24 @@ export function OrderDetailPanel({
   const profit = orderProfit(settings, order);
   const orderPayments = payments.filter((p) => p.order_id === order.id);
   const next = nextStep(order.status);
+  const wa = (text: string) => waLink(client?.telefon, text);
+  const tel = telLink(client?.telefon);
+  const templates = client?.telefon ? messageTemplates(order, client.nume) : [];
+
+  const duplicate = () =>
+    onDuplicate({
+      client_id: order.client_id,
+      titlu: order.titlu,
+      descriere: order.descriere,
+      material: order.material,
+      culoare: order.culoare,
+      grame_filament: order.grame_filament,
+      durata_print_ore: order.durata_print_ore,
+      nr_bucati: order.nr_bucati,
+      pret_vanzare: order.pret_vanzare,
+      prioritate: order.prioritate,
+      note: order.note,
+    });
 
   const addPayment = async (suma: number) => {
     if (!(suma > 0)) return toast('Introdu o sumă mai mare ca 0.', 'error');
@@ -157,7 +178,10 @@ export function OrderDetailPanel({
           <Button icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => onEdit(order)}>
             Editează
           </Button>
-          <IconButton label="Șterge comanda" onClick={remove} className="ml-auto hover:text-critical">
+          <IconButton label="Duplică (comandă nouă la fel)" onClick={duplicate} className="ml-auto">
+            <Copy className="h-4 w-4" />
+          </IconButton>
+          <IconButton label="Șterge comanda" onClick={remove} className="hover:text-critical">
             <Trash2 className="h-4 w-4" />
           </IconButton>
         </div>
@@ -192,6 +216,50 @@ export function OrderDetailPanel({
               }
             />
           </div>
+        </Section>
+      )}
+
+      {/* Contact rapid: mesaj precompletat pe WhatsApp */}
+      {client && (!client.telefon || templates.length > 0) && (
+        <Section
+          title="Scrie clientului"
+          right={
+            tel && (
+              <a href={tel} className="flex items-center gap-1.5 text-xs text-muted hover:text-fg">
+                <Phone className="h-3.5 w-3.5" /> {client.telefon}
+              </a>
+            )
+          }
+        >
+          {templates.length ? (
+            <div className="flex flex-wrap gap-2">
+              {templates.map((t, i) => {
+                const href = wa(t.text);
+                return href ? (
+                  <a
+                    key={t.id}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={t.text}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded border px-2.5 text-sm transition-colors ${
+                      i === 0 ? 'border-ok/40 bg-ok/10 text-fg hover:bg-ok/20' : 'border-line text-muted hover:border-fg hover:text-fg'
+                    }`}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> {t.label}
+                  </a>
+                ) : null;
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">
+              Adaugă un număr de telefon la{' '}
+              <Link to={`/clienti/${client.id}`} onClick={onClose} className="text-fg underline">
+                {client.nume}
+              </Link>{' '}
+              ca să-i trimiți mesaje pe WhatsApp dintr-o apăsare.
+            </p>
+          )}
         </Section>
       )}
 

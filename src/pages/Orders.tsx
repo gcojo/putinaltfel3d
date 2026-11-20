@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, Download, Plus, Search, X } from 'lucide-react';
 import type { Order } from '@/types/db';
 import { useData } from '@/hooks/useData';
@@ -37,6 +37,7 @@ export default function OrdersPage() {
   const { orders, clients, payments, settings, schedule, loading, error, reload, clientById } = useData();
   const { openOrder, newOrder } = useOrderPanel();
   const [params, setParams] = useSearchParams();
+  const focusSearch = !!(useLocation().state as { focusSearch?: boolean } | null)?.focusSearch;
 
   const q = params.get('q') ?? '';
   const status = params.get('status') ?? 'active';
@@ -121,7 +122,7 @@ export default function OrdersPage() {
             <Button size="sm" icon={<Download className="h-3.5 w-3.5" />} onClick={() => exportPayments(payments, orders, clients)} disabled={!payments.length}>
               CSV încasări
             </Button>
-            <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => newOrder()} className="hidden md:inline-flex">
+            <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => newOrder()} className="hidden md:inline-flex" title="Comandă nouă (tasta N)">
               Comandă nouă
             </Button>
           </>
@@ -132,7 +133,21 @@ export default function OrdersPage() {
       <div className="mb-4 grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
         <div className="relative col-span-2 md:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-          <Input value={q} onChange={(e) => setParam('q', e.target.value)} placeholder="Caută titlu, client, #nr…" className="pl-8" aria-label="Caută" />
+          <Input
+            id="cauta-comenzi"
+            type="search"
+            value={q}
+            onChange={(e) => setParam('q', e.target.value)}
+            onKeyDown={(e) => {
+              // Enter cu un singur rezultat -> îl deschide direct
+              if (e.key === 'Enter' && rows.length === 1) openOrder(rows[0].id);
+              if (e.key === 'Escape') (e.target as HTMLInputElement).blur();
+            }}
+            autoFocus={focusSearch}
+            placeholder="Caută titlu, client, #nr…  ( / )"
+            className="pl-8"
+            aria-label="Caută"
+          />
         </div>
         <Select value={status} onChange={(e) => setParam('status', e.target.value === 'active' ? '' : e.target.value)} className="md:w-40" aria-label="Status">
           <option value="active">Active</option>

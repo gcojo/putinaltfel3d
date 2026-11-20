@@ -4,7 +4,8 @@ import type { Order, OrderInput, OrderStatus, Priority } from '@/types/db';
 import * as api from '@/lib/api';
 import { costBreakdown } from '@/lib/calc';
 import { DEFAULT_MATERIALS, PRIORITIES, STATUSES } from '@/lib/constants';
-import { dateTime, deadlineEnd, lei, signedHours, todayYmd } from '@/lib/format';
+import { dateTime, deadlineEnd, hours, lei, parseYmd, signedHours, toYmd, todayYmd } from '@/lib/format';
+import { parseDuration, parseNumber } from '@/lib/parse';
 import { estimateIfAppended } from '@/lib/schedule';
 import { useData } from '@/hooks/useData';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +18,7 @@ import { usePhotoUrl } from './usePhotoUrl';
 interface FormState {
   client_id: string; // '' | 'new' | id
   client_nou: string;
+  client_tel: string;
   titlu: string;
   descriere: string;
   material: string;
@@ -35,13 +37,28 @@ interface FormState {
 
 type Errors = Partial<Record<keyof FormState, string>>;
 
-const toNum = (s: string) => Number(String(s).replace(',', '.').trim());
-const isNum = (s: string) => s.trim() !== '' && Number.isFinite(toNum(s));
+const toNum = (s: string) => parseNumber(s);
+const isNum = (s: string) => Number.isFinite(parseNumber(s));
+const toHours = (s: string) => parseDuration(s);
+const isHours = (s: string) => Number.isFinite(parseDuration(s));
+
+/** Scurtături pentru deadline, relative la data comenzii. */
+const DEADLINE_CHIPS = [
+  { label: '+3 zile', days: 3 },
+  { label: '+1 săpt.', days: 7 },
+  { label: '+2 săpt.', days: 14 },
+];
+const addDays = (ymd: string, days: number) => {
+  const d = parseYmd(ymd || todayYmd());
+  d.setDate(d.getDate() + days);
+  return toYmd(d);
+};
 
 function fromOrder(o?: Partial<Order>): FormState {
   return {
     client_id: o?.client_id ? String(o.client_id) : '',
     client_nou: '',
+    client_tel: '',
     titlu: o?.titlu ?? '',
     descriere: o?.descriere ?? '',
     material: o?.material ?? 'PLA',
@@ -64,7 +81,7 @@ function validate(f: FormState): Errors {
   if (!f.titlu.trim()) e.titlu = 'Scrie un titlu pentru comandă.';
   if (f.client_id === 'new' && !f.client_nou.trim()) e.client_nou = 'Scrie numele clientului nou.';
   if (!isNum(f.grame_filament) || toNum(f.grame_filament) < 0) e.grame_filament = 'Introdu gramele (0 sau mai mult).';
-  if (!isNum(f.durata_print_ore) || toNum(f.durata_print_ore) < 0) e.durata_print_ore = 'Introdu durata în ore (ex. 3.5).';
+  if (!isHours(f.durata_print_ore) || toHours(f.durata_print_ore) < 0) e.durata_print_ore = 'Introdu durata (ex. 3.5 sau 2h 35m).';
   if (!isNum(f.nr_bucati) || !Number.isInteger(toNum(f.nr_bucati)) || toNum(f.nr_bucati) < 1) e.nr_bucati = 'Minim 1 bucată.';
   if (f.pret_vanzare.trim() !== '' && (!isNum(f.pret_vanzare) || toNum(f.pret_vanzare) < 0)) e.pret_vanzare = 'Preț invalid.';
   if (!f.data_comanda) e.data_comanda = 'Alege data comenzii.';
@@ -117,7 +134,7 @@ export function OrderFormPanel({
     {
       material: f.material,
       grame_filament: isNum(f.grame_filament) ? toNum(f.grame_filament) : 0,
-      durata_print_ore: isNum(f.durata_print_ore) ? toNum(f.durata_print_ore) : 0,
+      durata_print_ore: isHours(f.durata_print_ore) ? toHours(f.durata_print_ore) : 0,
       nr_bucati: isNum(f.nr_bucati) ? toNum(f.nr_bucati) : 1,
     },
     isNum(markup) ? toNum(markup) : Number(settings.adaos_procent),
@@ -127,7 +144,7 @@ export function OrderFormPanel({
 
   // Estimare: când ar fi gata dacă intră acum la finalul cozii (sau poziția actuală)
   const estimate = useMemo(() => {
-    const hrs = isNum(f.durata_print_ore) ? toNum(f.durata_print_ore) : 0;
+    const hrs = isHours(f.durata_print_ore) ? toHours(f.durata_print_ore) : 0;
     if (!hrs || ['finalizata', 'livrata', 'anulata'].includes(f.status)) return null;
     const scheduled = order ? schedule.items.find((i) => i.order.id === order.id) : undefined;
     const end = scheduled && Number(order!.durata_print_ore) === hrs ? scheduled.end : estimateIfAppended(schedule, hrs, settings);
@@ -169,7 +186,7 @@ export function OrderFormPanel({
     try {
       let clientId: number | null = f.client_id && f.client_id !== 'new' ? Number(f.client_id) : null;
       if (f.client_id === 'new') {
-        const c = await api.saveClient({ nume: f.client_nou.trim(), telefon: null, email: null, oras: null, note: null });
+        const c = await api.saveClient({ nume: f.client_nou.trim(), telefon: f.client_tel.trim() || null, email: null, oras: null, note: null });
         clientId = c.id;
       }
       const input: OrderInput = {
@@ -179,7 +196,7 @@ export function OrderFormPanel({
         material: f.material,
         culoare: f.culoare.trim() || null,
         grame_filament: toNum(f.grame_filament),
-        durata_print_ore: toNum(f.durata_print_ore),
+        durata_print_ore: toHours(f.durata_print_ore),
         nr_bucati: toNum(f.nr_bucati),
         pret_vanzare: f.pret_vanzare.trim() === '' ? 0 : toNum(f.pret_vanzare),
         status: f.status,
@@ -244,6 +261,11 @@ export function OrderFormPanel({
               <Input id="f-client-nou" value={f.client_nou} onChange={(e) => set('client_nou', e.target.value)} invalid={!!errors.client_nou} placeholder="Nume și prenume" />
             </Field>
           )}
+          {f.client_id === 'new' && (
+            <Field label="Telefon client" hint="Opțional · pentru mesaje rapide pe WhatsApp" htmlFor="f-client-tel" className="sm:col-start-2">
+              <Input id="f-client-tel" type="tel" inputMode="tel" value={f.client_tel} onChange={(e) => set('client_tel', e.target.value)} placeholder="07xx xxx xxx" />
+            </Field>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -260,8 +282,13 @@ export function OrderFormPanel({
           <Field label="Filament total" error={errors.grame_filament} htmlFor="f-grame">
             <Input id="f-grame" inputMode="decimal" value={f.grame_filament} onChange={(e) => set('grame_filament', e.target.value)} invalid={!!errors.grame_filament} suffix="g" placeholder="0" />
           </Field>
-          <Field label="Durată print totală" error={errors.durata_print_ore} htmlFor="f-ore">
-            <Input id="f-ore" inputMode="decimal" value={f.durata_print_ore} onChange={(e) => set('durata_print_ore', e.target.value)} invalid={!!errors.durata_print_ore} suffix="h" placeholder="3.5" />
+          <Field
+            label="Durată print totală"
+            error={errors.durata_print_ore}
+            hint={isHours(f.durata_print_ore) && !isNum(f.durata_print_ore) ? `= ${hours(toHours(f.durata_print_ore))}` : 'merge și „2h 35m” din Bambu'}
+            htmlFor="f-ore"
+          >
+            <Input id="f-ore" value={f.durata_print_ore} onChange={(e) => set('durata_print_ore', e.target.value)} invalid={!!errors.durata_print_ore} suffix="h" placeholder="3.5" />
           </Field>
           <Field label="Nr. bucăți" error={errors.nr_bucati} htmlFor="f-buc">
             <Input id="f-buc" inputMode="numeric" value={f.nr_bucati} onChange={(e) => set('nr_bucati', e.target.value)} invalid={!!errors.nr_bucati} />
@@ -341,6 +368,26 @@ export function OrderFormPanel({
           </Field>
           <Field label="Deadline" error={errors.deadline} htmlFor="f-deadline">
             <Input id="f-deadline" type="date" value={f.deadline} onChange={(e) => set('deadline', e.target.value)} invalid={!!errors.deadline} />
+            <div className="flex flex-wrap gap-1.5">
+              {DEADLINE_CHIPS.map((c) => {
+                const v = addDays(f.data_comanda, c.days);
+                return (
+                  <button
+                    key={c.days}
+                    type="button"
+                    onClick={() => set('deadline', v)}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${f.deadline === v ? 'border-accent bg-accent text-white' : 'border-line text-muted hover:border-fg hover:text-fg'}`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+              {f.deadline && (
+                <button type="button" onClick={() => set('deadline', '')} className="rounded-full px-2 py-0.5 text-xs text-muted hover:text-fg">
+                  fără deadline
+                </button>
+              )}
+            </div>
           </Field>
         </div>
 

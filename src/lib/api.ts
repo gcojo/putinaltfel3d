@@ -83,6 +83,14 @@ export async function setOrderStatus(id: number, status: OrderStatus): Promise<O
   return check(res) as Order;
 }
 
+/** Readuce statusul anterior (butonul „Anulează”), păstrând și locul din coadă. */
+export async function restoreStatus(id: number, status: OrderStatus, pozitie: number | null): Promise<Order> {
+  const patch: Partial<Order> = { status };
+  if (status === 'in_coada' && pozitie != null) patch.pozitie_in_coada = pozitie;
+  const res = await supabase.from('orders').update(patch).eq('id', id).select('*').single();
+  return check(res) as Order;
+}
+
 export async function deleteOrder(order: Pick<Order, 'id' | 'poza_url'>) {
   check(await supabase.from('orders').delete().eq('id', order.id));
   if (order.poza_url) await supabase.storage.from(PHOTO_BUCKET).remove([order.poza_url]);

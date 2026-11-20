@@ -26,7 +26,7 @@ export function OrderPanelProvider({ children }: { children: ReactNode }) {
   return (
     <OrderPanelContext.Provider value={value}>
       {children}
-      {!form.open && <OrderDetailPanel orderId={detailId} onClose={() => setDetailId(null)} onEdit={editOrder} />}
+      {!form.open && <OrderDetailPanel orderId={detailId} onClose={() => setDetailId(null)} onEdit={editOrder} onDuplicate={newOrder} />}
       <OrderFormPanel
         open={form.open}
         order={form.order}

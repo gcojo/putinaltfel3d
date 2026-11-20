@@ -3,11 +3,13 @@ import { createPortal } from 'react-dom';
 import { Button } from './Button';
 
 type Kind = 'ok' | 'error' | 'info';
-interface ToastItem { id: number; kind: Kind; text: string }
+export interface ToastAction { label: string; onClick: () => void }
+interface ToastItem { id: number; kind: Kind; text: string; action?: ToastAction }
 interface ConfirmOpts { title: string; text?: string; confirmLabel?: string; danger?: boolean }
 
 interface Ctx {
-  toast: (text: string, kind?: Kind) => void;
+  /** cu `action` (ex. „Anulează”), notificarea stă mai mult pe ecran */
+  toast: (text: string, kind?: Kind, action?: ToastAction) => void;
   confirm: (opts: ConfirmOpts) => Promise<boolean>;
 }
 
@@ -19,11 +21,16 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<(ConfirmOpts & { resolve: (v: boolean) => void }) | null>(null);
   const seq = useRef(0);
 
-  const toast = useCallback((text: string, kind: Kind = 'ok') => {
-    const id = ++seq.current;
-    setToasts((t) => [...t, { id, kind, text }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), kind === 'error' ? 6000 : 3000);
-  }, []);
+  const dismiss = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
+
+  const toast = useCallback(
+    (text: string, kind: Kind = 'ok', action?: ToastAction) => {
+      const id = ++seq.current;
+      setToasts((t) => [...t.slice(-3), { id, kind, text, action }]);
+      setTimeout(() => dismiss(id), action ? 7000 : kind === 'error' ? 6000 : 3000);
+    },
+    [dismiss],
+  );
 
   const confirm = useCallback((opts: ConfirmOpts) => new Promise<boolean>((resolve) => setDialog({ ...opts, resolve })), []);
 
@@ -45,7 +52,18 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                 className="glass-panel pointer-events-auto flex max-w-sm animate-pop-in items-center gap-2.5 rounded-tile px-4 py-3 text-sm"
               >
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.kind === 'ok' ? 'bg-ok' : t.kind === 'error' ? 'bg-critical' : 'bg-muted'}`} />
-                {t.text}
+                <span className="flex-1">{t.text}</span>
+                {t.action && (
+                  <button
+                    onClick={() => {
+                      dismiss(t.id);
+                      t.action!.onClick();
+                    }}
+                    className="-my-1 ml-1 shrink-0 rounded px-2 py-1 text-sm font-medium text-accent hover:bg-ink/[0.06]"
+                  >
+                    {t.action.label}
+                  </button>
+                )}
               </div>
             ))}
           </div>

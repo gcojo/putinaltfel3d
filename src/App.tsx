@@ -84,7 +84,8 @@ export default function App() {
   if (!isConfigured) return <NotConfigured />;
   return (
     <AuthProvider>
-      <BrowserRouter>
+      {/* basename: pe GitHub Pages aplicația stă în /putinaltfel3d/ */}
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
         <AppRoutes />
       </BrowserRouter>
     </AuthProvider>

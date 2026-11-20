@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ChartColumn, ChevronsLeft, ChevronsRight, LayoutGrid, ListOrdered, LogOut, Moon, Package, Plus, Settings, Sun, Users,
 } from 'lucide-react';
@@ -46,6 +46,7 @@ export function AppLayout() {
     }
   });
   const location = useLocation();
+  const navigate = useNavigate();
   const printing = schedule.items.some((i) => i.isPrinting);
   const critical = warnings.filter((w) => w.level === 'critical').length;
 
@@ -56,6 +57,27 @@ export function AppLayout() {
       /* stocare indisponibilă */
     }
   }, [expanded]);
+
+  // Scurtături (desktop): N = comandă nouă, / = caută în comenzi
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        newOrder();
+      } else if (e.key === '/') {
+        e.preventDefault();
+        const box = document.getElementById('cauta-comenzi');
+        if (box) box.focus();
+        else navigate('/comenzi', { state: { focusSearch: true } });
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [newOrder, navigate]);
 
   // acoladele contează: în Chromium nou scrollTo() returnează un Promise, iar React
   // l-ar trata drept funcție de curățare și s-ar bloca la schimbarea paginii
@@ -76,7 +98,7 @@ export function AppLayout() {
         <div className="absolute bottom-[-10rem] left-[28%] h-[30rem] w-[30rem] animate-drift rounded-full bg-accent-3/[0.26] blur-[100px] [animation-delay:-16s]" />
         <div className="absolute left-[45%] top-[35%] h-[22rem] w-[22rem] animate-drift rounded-full bg-[#F7B2C4]/[0.4] blur-[90px] [animation-delay:-23s]" />
         <img
-          src="/heart-512.png"
+          src={`${import.meta.env.BASE_URL}heart-512.png`}
           alt=""
           className="absolute -bottom-20 -right-10 h-[min(72vh,640px)] w-auto animate-float opacity-[0.16] dark:opacity-[0.12]"
         />

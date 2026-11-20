@@ -16,9 +16,13 @@ export function useChangeStatus() {
         const ok = await confirm({ title: `Anulezi comanda #${order.id}?`, text: 'Comanda iese din coadă. O poți reactiva oricând.', confirmLabel: 'Anulează comanda', danger: true });
         if (!ok) return;
       }
+      // „Anulează” e sigur doar dacă nu repornim un print (ora de start s-ar reseta)
+      // și nu am finalizat automat altă comandă.
+      let undoable = order.status !== 'se_printeaza';
       if (status === 'se_printeaza') {
         const other = orders.find((o) => o.status === 'se_printeaza' && o.id !== order.id);
         if (other) {
+          undoable = false;
           const ok = await confirm({
             title: 'Imprimanta e deja ocupată',
             text: `Comanda #${other.id} „${other.titlu}” se printează acum. O marchez ca finalizată și pornesc #${order.id}?`,
@@ -31,7 +35,27 @@ export function useChangeStatus() {
       patchOrders((all) => all.map((o) => (o.id === order.id ? { ...o, status } : o)));
       try {
         await api.setOrderStatus(order.id, status);
-        toast(`#${order.id} → ${STATUS_MAP[status].label}`);
+        const prev = { status: order.status, pozitie: order.pozitie_in_coada };
+        toast(
+          `#${order.id} → ${STATUS_MAP[status].label}`,
+          'ok',
+          undoable
+            ? {
+                label: 'Anulează',
+                onClick: async () => {
+                  patchOrders((all) => all.map((o) => (o.id === order.id ? { ...o, status: prev.status, pozitie_in_coada: prev.pozitie } : o)));
+                  try {
+                    await api.restoreStatus(order.id, prev.status, prev.pozitie);
+                    toast(`#${order.id} înapoi la ${STATUS_MAP[prev.status].label}`, 'info');
+                  } catch (e) {
+                    toast(api.friendlyError(e), 'error');
+                  } finally {
+                    await reload();
+                  }
+                },
+              }
+            : undefined,
+        );
       } catch (e) {
         toast(api.friendlyError(e), 'error');
       } finally {
