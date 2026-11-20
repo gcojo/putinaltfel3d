@@ -34,6 +34,7 @@ jobs:
         run: npm run build
         env:
           # site-ul stă la rădăcina https://putinaltfel3d.github.io/ → base „/” (implicit)
+           BASE_PATH: /putinaltfel3d/
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       # GitHub Pages nu știe de rutele aplicației: la refresh pe /comenzi ar da 404.
