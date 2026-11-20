@@ -37,19 +37,19 @@ export default function StatsPage() {
           <EmptyState title="Încă nu există date" text="Statisticile apar după primele comenzi." />
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="stagger flex flex-col gap-4">
           <Card>
-            <div className="grid grid-cols-2 gap-px bg-line lg:grid-cols-4">
-              <div className="bg-surface p-4 md:p-5">
+            <div className="stagger grid grid-cols-2 gap-3 p-3 lg:grid-cols-4">
+              <div className="tile p-4 md:p-5">
                 <Kpi label="Durată medie / comandă" value={hours(g.avgHours)} sub={`preț mediu ${lei(g.avgPrice)}`} />
               </div>
-              <div className="bg-surface p-4 md:p-5">
+              <div className="tile p-4 md:p-5">
                 <Kpi label="Ore totale de printare" value={hours(g.totalHours)} sub={`curent ≈ ${lei(electricityCost(settings, g.totalHours))}`} />
               </div>
-              <div className="bg-surface p-4 md:p-5">
+              <div className="tile p-4 md:p-5">
                 <Kpi label="Material consumat" value={`${smart(g.totalKg, 2)} kg`} sub="comenzi finalizate + livrate" />
               </div>
-              <div className="bg-surface p-4 md:p-5">
+              <div className="tile p-4 md:p-5">
                 <Kpi
                   label="Eficiență imprimantă · 30 zile"
                   value={pct(eff30.pct)}
@@ -90,8 +90,8 @@ export default function StatsPage() {
                         <span>{m.material}</span>
                         <span>{smart(m.kg, 2)} kg</span>
                       </div>
-                      <div className="mt-1.5 h-1 rounded-full bg-line">
-                        <div className={`h-full rounded-full ${i === 0 ? 'bg-fg' : 'bg-muted-2'}`} style={{ width: `${(m.kg / maxKg) * 100}%` }} />
+                      <div className="mt-1.5 h-1 rounded-full bg-white/[0.07]">
+                        <div className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-accent to-accent-2' : 'bg-accent/30'}`} style={{ width: `${(m.kg / maxKg) * 100}%` }} />
                       </div>
                     </li>
                   ))}

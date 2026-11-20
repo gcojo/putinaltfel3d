@@ -6,17 +6,25 @@
   html {
     color-scheme: dark;
     -webkit-tap-highlight-color: transparent;
+    background: #070812;
   }
   body {
     @apply bg-bg text-fg font-sans text-base font-normal antialiased;
     font-feature-settings: 'ss01', 'cv11';
+    /* fundal „mesh” fix: lumini colorate difuze sub sticlă */
+    background-image:
+      radial-gradient(60rem 40rem at 8% -10%, rgba(139, 123, 255, 0.22), transparent 60%),
+      radial-gradient(50rem 36rem at 105% 10%, rgba(56, 213, 245, 0.14), transparent 60%),
+      radial-gradient(48rem 40rem at 60% 115%, rgba(232, 121, 249, 0.12), transparent 60%),
+      linear-gradient(180deg, #080A18 0%, #070812 100%);
+    background-attachment: fixed;
   }
   ::selection {
-    @apply bg-surface-3;
+    background: rgba(139, 123, 255, 0.35);
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2e333b transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
   }
   input[type='number']::-webkit-inner-spin-button,
   input[type='number']::-webkit-outer-spin-button {
@@ -26,12 +34,15 @@
   input[type='date']::-webkit-calendar-picker-indicator {
     filter: invert(0.7);
   }
+  select option {
+    background: #11132a;
+  }
   /* elementele din grid nu se lățesc după conținut (ex. timeline-ul derulabil) */
   .grid > * {
     min-width: 0;
   }
   :focus-visible {
-    @apply outline outline-1 outline-offset-2 outline-muted;
+    @apply outline outline-1 outline-offset-2 outline-accent;
   }
 }
 
@@ -44,26 +55,89 @@
   .num {
     font-variant-numeric: tabular-nums;
   }
-  .card {
-    @apply rounded-card border border-line bg-surface;
+
+  /* ---------- Sticlă ---------- */
+  .glass {
+    @apply border border-line bg-surface shadow-glass;
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
   }
+  /* panou aproape opac pentru elemente plutitoare (modale, meniuri, tooltip-uri) */
+  .glass-panel {
+    @apply border border-line-strong bg-panel shadow-glass-lg;
+    -webkit-backdrop-filter: blur(28px) saturate(170%);
+    backdrop-filter: blur(28px) saturate(170%);
+  }
+  .card {
+    @apply glass relative rounded-card transition-[border-color,box-shadow,transform] duration-300 ease-spring;
+    /* reflexie subtilă în colțul de sus */
+    background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%);
+  }
+  .card:hover {
+    @apply border-line-strong;
+  }
+  /* „plăcuță” KPI în interiorul unui card */
+  .tile {
+    @apply relative overflow-hidden rounded-tile border border-line bg-surface transition-[border-color,background-color,transform] duration-300 ease-spring;
+  }
+  .tile:hover {
+    @apply -translate-y-0.5 border-line-strong bg-surface-2;
+  }
+  .tile::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  .tile:hover::after {
+    @apply animate-sheen;
+  }
+
   .input {
-    @apply h-10 w-full rounded border border-line bg-bg px-3 text-md text-fg placeholder:text-muted-2
-      transition-colors duration-150 hover:border-line-strong focus:border-muted focus:outline-none
+    @apply h-10 w-full rounded border border-line bg-white/[0.03] px-3 text-md text-fg placeholder:text-muted-2
+      transition-[border-color,background-color,box-shadow] duration-200 hover:border-line-strong
+      focus:border-accent/70 focus:bg-white/[0.05] focus:shadow-[0_0_0_3px_rgba(139,123,255,0.18)] focus:outline-none
       sm:h-9 sm:text-base;
   }
   .input-error {
-    @apply border-critical/70 hover:border-critical focus:border-critical;
+    @apply border-critical/70 hover:border-critical focus:border-critical focus:shadow-[0_0_0_3px_rgba(255,77,106,0.18)];
   }
   .table-dense th {
-    @apply label h-8 whitespace-nowrap border-b border-line px-3 text-left font-medium;
+    @apply label h-9 whitespace-nowrap border-b border-line px-3 text-left font-medium;
   }
   .table-dense td {
-    @apply h-9 whitespace-nowrap border-b border-line px-3 text-sm leading-none;
+    @apply h-10 whitespace-nowrap border-b border-line px-3 text-sm leading-none;
   }
   .table-dense tbody tr {
-    @apply transition-colors duration-150 hover:bg-surface-2;
+    @apply transition-colors duration-200 hover:bg-white/[0.04];
   }
+  .table-dense tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* text cu gradient pentru titluri */
+  .text-gradient {
+    background: linear-gradient(90deg, #ffffff 0%, #c9c2ff 55%, #8fe6f8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* intrare în cascadă: copiii apar unul după altul */
+  .stagger > * {
+    @apply animate-rise;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .stagger > *:nth-child(6) { animation-delay: 300ms; }
+  .stagger > *:nth-child(7) { animation-delay: 360ms; }
+  .stagger > *:nth-child(n + 8) { animation-delay: 420ms; }
 }
 
 @layer utilities {
@@ -75,5 +149,17 @@
   }
   .hatch {
     background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 7px);
+  }
+}
+
+/* utilizatorii care au cerut mai puțină mișcare nu primesc animații decorative */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
   }
 }

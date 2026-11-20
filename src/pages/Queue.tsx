@@ -149,7 +149,7 @@ export default function QueuePage() {
           <SkeletonRows rows={6} cols={5} />
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="stagger flex flex-col gap-4">
           <Card>
             <CardHeader
               title="Timeline"

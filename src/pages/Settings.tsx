@@ -152,7 +152,7 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <div className="flex flex-col gap-4">
+        <div className="stagger flex flex-col gap-4">
           <Card>
             <CardHeader title="Curent & preț" />
             <div className="grid grid-cols-2 gap-4 p-4">
@@ -188,7 +188,7 @@ export default function SettingsPage() {
                         key={d}
                         type="button"
                         onClick={() => set('freeDays', on ? f.freeDays.filter((x) => x !== d) : [...f.freeDays, d])}
-                        className={`h-9 rounded border px-3 text-sm transition-colors duration-150 ${on ? 'border-fg bg-fg text-bg' : 'border-line text-muted hover:text-fg'}`}
+                        className={`h-9 rounded border px-3 text-sm transition-colors duration-150 ${on ? 'border-accent/50 bg-gradient-to-r from-accent/40 to-accent-2/20 text-fg' : 'border-line text-muted hover:text-fg'}`}
                         aria-pressed={on}
                       >
                         {WEEKDAYS[d].slice(0, 3)}

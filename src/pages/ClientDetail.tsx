@@ -97,17 +97,17 @@ export default function ClientDetailPage() {
       </div>
 
       <Card className="mb-4">
-        <div className="grid grid-cols-2 gap-px bg-line lg:grid-cols-4">
-          <div className="bg-surface p-4">
+        <div className="stagger grid grid-cols-2 gap-3 p-3 lg:grid-cols-4">
+          <div className="tile p-4">
             <Kpi label="Comenzi" value={st.count} sub={st.last ? `ultima: ${dateShort(st.last)}` : undefined} />
           </div>
-          <div className="bg-surface p-4">
+          <div className="tile p-4">
             <Kpi label="Total cheltuit" value={<Money value={st.spent} />} />
           </div>
-          <div className="bg-surface p-4">
+          <div className="tile p-4">
             <Kpi label="De încasat" value={<Money value={st.due} />} signal={st.due > 0 ? 'warning' : undefined} />
           </div>
-          <div className="bg-surface p-4">
+          <div className="tile p-4">
             <Kpi label="Profit estimat" value={<Money value={profit} />} />
           </div>
         </div>

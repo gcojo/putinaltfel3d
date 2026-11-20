@@ -56,7 +56,7 @@ export function StatusMenu({ order, short = false }: { order: Order; short?: boo
             <div className="fixed inset-0 z-50" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />
             <div
               role="menu"
-              className="fixed z-50 w-48 animate-fade-in rounded-card border border-line bg-surface-2 py-1"
+              className="glass-panel fixed z-50 w-48 animate-pop-in rounded-tile py-1"
               style={{ top: pos.top, left: pos.left }}
               onClick={(e) => e.stopPropagation()}
             >

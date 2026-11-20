@@ -272,7 +272,7 @@ export function OrderFormPanel({
         </div>
 
         {/* Calculator automat */}
-        <div className="rounded-card border border-line bg-bg">
+        <div className="rounded-tile border border-line bg-white/[0.03]">
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
             <span className="label flex items-center gap-2">
               <Calculator className="h-3.5 w-3.5" /> Calculator cost
@@ -283,19 +283,19 @@ export function OrderFormPanel({
                 inputMode="decimal"
                 value={markup}
                 onChange={(e) => setMarkup(e.target.value)}
-                className="num h-7 w-14 rounded border border-line bg-surface px-2 text-right text-sm text-fg focus:border-muted focus:outline-none"
+                className="num h-7 w-14 rounded border border-line bg-surface px-2 text-right text-sm text-fg focus:border-accent/70 focus:outline-none"
                 aria-label="Adaos procent"
               />
               %
             </label>
           </div>
-          <dl className="num grid grid-cols-3 gap-px bg-line text-sm">
+          <dl className="num grid grid-cols-3 divide-x divide-line text-sm">
             {[
               ['Material', lei(cost.material, { decimals: true })],
               ['Curent', lei(cost.electricity, { decimals: true })],
               ['Cost real', lei(cost.total, { decimals: true })],
             ].map(([k, v]) => (
-              <div key={k} className="bg-bg px-4 py-2.5">
+              <div key={k} className="px-4 py-2.5">
                 <dt className="label">{k}</dt>
                 <dd className="mt-1 text-md">{v}</dd>
               </div>

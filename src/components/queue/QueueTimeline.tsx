@@ -116,7 +116,7 @@ export function QueueTimeline({
         {/* acum */}
         <div className="pointer-events-none absolute" style={{ left: view.nowX, top: 14, height: trackH + 12 }}>
           <div className="h-full w-px bg-fg" />
-          <span className="label absolute -left-2.5 -top-0.5 hidden bg-bg px-0.5 text-fg">acum</span>
+          <span className="label absolute -left-2.5 -top-0.5 hidden rounded bg-panel px-0.5 text-fg">acum</span>
         </div>
       </div>
     </div>

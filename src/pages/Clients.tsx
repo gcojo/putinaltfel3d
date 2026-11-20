@@ -33,8 +33,8 @@ function Ranking({ title, rows, value, format }: { title: string; rows: ClientSt
                   </span>
                   <span>{format(value(r))}</span>
                 </div>
-                <div className="ml-6 mt-1.5 h-1 rounded-full bg-line">
-                  <div className={`h-full rounded-full ${i === 0 ? 'bg-fg' : 'bg-muted-2'}`} style={{ width: `${(value(r) / max) * 100}%` }} />
+                <div className="ml-6 mt-1.5 h-1 rounded-full bg-white/[0.07]">
+                  <div className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-accent to-accent-2' : 'bg-accent/30'}`} style={{ width: `${(value(r) / max) * 100}%` }} />
                 </div>
               </Link>
             </li>
@@ -107,7 +107,7 @@ export default function ClientsPage() {
           />
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="stagger flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Ranking title="Top după nr. comenzi" rows={stats} value={(s) => s.count} format={(v) => `${v} ${v === 1 ? 'comandă' : 'comenzi'}`} />
             <Ranking title="Top după bani" rows={stats} value={(s) => s.spent} format={(v) => lei(v)} />

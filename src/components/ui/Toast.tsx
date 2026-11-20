@@ -42,7 +42,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
               <div
                 key={t.id}
                 role="status"
-                className="pointer-events-auto flex max-w-sm animate-fade-in items-center gap-2.5 rounded-card border border-line bg-surface-2 px-4 py-3 text-sm"
+                className="glass-panel pointer-events-auto flex max-w-sm animate-pop-in items-center gap-2.5 rounded-tile px-4 py-3 text-sm"
               >
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.kind === 'ok' ? 'bg-ok' : t.kind === 'error' ? 'bg-critical' : 'bg-muted'}`} />
                 {t.text}
@@ -51,8 +51,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
           </div>
           {dialog && (
             <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center" role="alertdialog" aria-modal="true">
-              <div className="absolute inset-0 animate-fade-in bg-black/70" onClick={() => close(false)} />
-              <div className="card relative w-full max-w-sm animate-fade-in p-5">
+              <div className="absolute inset-0 animate-fade-in bg-black/60 backdrop-blur-sm" onClick={() => close(false)} />
+              <div className="glass-panel relative w-full max-w-sm animate-pop-in rounded-card p-5">
                 <h3 className="text-md">{dialog.title}</h3>
                 {dialog.text && <p className="mt-2 text-sm text-muted">{dialog.text}</p>}
                 <div className="mt-5 flex justify-end gap-2">

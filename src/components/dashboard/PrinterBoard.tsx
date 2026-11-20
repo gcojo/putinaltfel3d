@@ -104,10 +104,10 @@ export function PrinterBoard() {
               {usage.map((d, i) => (
                 <div key={d.key} className="group relative flex h-full flex-1 flex-col items-center justify-end gap-1">
                   <div className="relative w-full flex-1 overflow-hidden rounded-[3px] bg-line/60">
-                    <div className={`absolute inset-x-0 bottom-0 rounded-t-[3px] ${i === usage.length - 1 ? 'bg-fg' : 'bg-muted-2'}`} style={{ height: `${d.pct}%` }} />
+                    <div className={`absolute inset-x-0 bottom-0 rounded-t-[3px] ${i === usage.length - 1 ? 'bg-gradient-to-t from-accent to-accent-2' : 'bg-accent/25'}`} style={{ height: `${d.pct}%` }} />
                   </div>
                   <span className="text-[10px] leading-none text-muted">{d.label}</span>
-                  <span className="num pointer-events-none absolute -top-6 z-10 whitespace-nowrap rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                  <span className="num pointer-events-none absolute -top-6 z-10 whitespace-nowrap rounded glass-panel px-1.5 py-0.5 text-[10px] opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                     {hours(d.hours)} · {pct(d.pct)}
                   </span>
                 </div>

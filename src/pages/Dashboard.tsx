@@ -71,7 +71,7 @@ export default function DashboardPage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="stagger flex flex-col gap-4">
           {/* Rândul 1: printer board + coadă (pe mobil: pods stivuite) */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
@@ -130,18 +130,18 @@ export default function DashboardPage() {
           {/* Pod: Încasări (KPI-uri) */}
           <Card>
             <CardHeader title="Încasări" sub={settings.adaos_procent ? `adaos implicit ${settings.adaos_procent}%` : undefined} />
-            <div className="grid grid-cols-2 gap-px bg-line lg:grid-cols-4">
-              <div className="bg-surface p-4 md:p-5">
+            <div className="stagger grid grid-cols-2 gap-3 p-3 lg:grid-cols-4">
+              <div className="tile p-4 md:p-5">
                 <Kpi
                   label="Încasat luna asta"
                   value={<Money value={k.incasatLuna} />}
                   sub={monthDelta == null ? 'luna trecută: 0 lei' : `${monthDelta >= 0 ? '+' : '−'}${Math.abs(Math.round(monthDelta))}% față de luna trecută`}
                 />
               </div>
-              <div className="bg-surface p-4 md:p-5">
+              <div className="tile p-4 md:p-5">
                 <Kpi label="Total încasat" value={<Money value={k.totalIncasat} />} sub={`${payments.length} încasări`} />
               </div>
-              <div className="bg-surface p-4 md:p-5">
+              <div className="tile p-4 md:p-5">
                 <Kpi
                   label="De încasat"
                   value={<Money value={k.deIncasat} />}
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                   sub={`${k.comenziDeIncasat} comenzi cu rest de plată`}
                 />
               </div>
-              <div className="bg-surface p-4 md:p-5">
+              <div className="tile p-4 md:p-5">
                 <Kpi label="Profit estimat" value={<Money value={k.profitEstimat} />} sub={`luna asta: ${lei(k.profitLuna)} · preț − material − curent`} />
               </div>
             </div>
