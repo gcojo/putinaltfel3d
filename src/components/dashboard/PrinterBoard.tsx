@@ -103,7 +103,7 @@ export function PrinterBoard() {
             <div className="mt-3 flex h-16 items-end gap-1.5" role="img" aria-label="Utilizare zilnică ultimele 7 zile">
               {usage.map((d, i) => (
                 <div key={d.key} className="group relative flex h-full flex-1 flex-col items-center justify-end gap-1">
-                  <div className="relative w-full flex-1 overflow-hidden rounded-[3px] bg-line/60">
+                  <div className="relative w-full flex-1 overflow-hidden rounded-[3px] bg-ink/[0.06]">
                     <div className={`absolute inset-x-0 bottom-0 rounded-t-[3px] ${i === usage.length - 1 ? 'bg-gradient-to-t from-accent to-accent-2' : 'bg-accent/25'}`} style={{ height: `${d.pct}%` }} />
                   </div>
                   <span className="text-[10px] leading-none text-muted">{d.label}</span>

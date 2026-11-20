@@ -33,7 +33,7 @@ function Ranking({ title, rows, value, format }: { title: string; rows: ClientSt
                   </span>
                   <span>{format(value(r))}</span>
                 </div>
-                <div className="ml-6 mt-1.5 h-1 rounded-full bg-white/[0.07]">
+                <div className="ml-6 mt-1.5 h-1 rounded-full bg-ink/[0.07]">
                   <div className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-accent to-accent-2' : 'bg-accent/30'}`} style={{ width: `${(value(r) / max) * 100}%` }} />
                 </div>
               </Link>

@@ -82,7 +82,7 @@ export function QueueTimeline({
             <button
               key={i.order.id}
               onClick={() => openOrder(i.order.id)}
-              className={`group absolute overflow-hidden rounded-[4px] border bg-surface-3 text-left transition-colors duration-150 hover:bg-surface-2 ${border}`}
+              className={`group absolute overflow-hidden rounded-[4px] border bg-white text-left shadow-sm transition-all duration-200 hover:-translate-y-px hover:shadow-lift ${border}`}
               style={{ left, width: w - 2, top: 20, height: trackH }}
               title={`#${i.order.id} ${i.order.titlu}`}
             >

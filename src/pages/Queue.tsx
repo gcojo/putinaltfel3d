@@ -42,7 +42,7 @@ function Row({ item, index, draggable }: { item: ScheduledItem; index: number; d
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`num relative flex items-stretch border-b border-line bg-surface ${isDragging ? 'z-10 border-line-strong bg-surface-2 opacity-95' : ''} ${
-        item.risk === 'late' ? 'shadow-[inset_2px_0_0_#FF4747]' : item.risk === 'tight' ? 'shadow-[inset_2px_0_0_#F39444]' : ''
+        item.risk === 'late' ? 'shadow-[inset_3px_0_0_#C62F2C]' : item.risk === 'tight' ? 'shadow-[inset_3px_0_0_#D98324]' : ''
       }`}
     >
       {draggable ? (

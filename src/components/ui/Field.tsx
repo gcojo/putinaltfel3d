@@ -39,7 +39,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 ) {
   return (
     <select ref={ref} className={`input appearance-none bg-[length:12px] bg-[right_10px_center] bg-no-repeat pr-8 ${invalid ? 'input-error' : ''} ${className}`}
-      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' stroke='%239298AE' fill='none' stroke-width='1.2'/%3E%3C/svg%3E\")" }}
+      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' stroke='%236B6660' fill='none' stroke-width='1.2'/%3E%3C/svg%3E\")" }}
       {...rest}
     >
       {children}
@@ -59,7 +59,7 @@ export function Segmented<T extends string>({
   value, onChange, options,
 }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div className="flex h-10 rounded border border-line bg-white/[0.03] p-0.5 sm:h-9" role="radiogroup">
+    <div className="flex h-10 rounded border border-line bg-white/60 p-0.5 sm:h-9" role="radiogroup">
       {options.map((o) => (
         <button
           key={o.value}
@@ -67,7 +67,7 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-[8px] px-2 text-sm transition-all duration-300 ease-spring ${value === o.value ? 'bg-gradient-to-r from-accent/40 to-accent-2/20 text-fg shadow-[inset_0_0_0_1px_rgba(139,123,255,0.4)]' : 'text-muted hover:text-fg'}`}
+          className={`flex-1 rounded-[8px] px-2 text-sm transition-all duration-300 ease-spring ${value === o.value ? 'bg-accent text-white shadow-glow' : 'text-muted hover:text-fg'}`}
         >
           {o.label}
         </button>

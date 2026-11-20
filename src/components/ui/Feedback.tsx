@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Logo } from './Logo';
 
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-shimmer rounded bg-white/[0.08] ${className}`} />;
+  return <div className={`animate-shimmer rounded bg-ink/[0.07] ${className}`} />;
 }
 
 export function SkeletonRows({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
@@ -32,8 +32,8 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
 export function EmptyState({ title, text, action, icon }: { title: string; text?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-tile border border-accent/30 bg-gradient-to-br from-accent/20 to-accent-2/10 text-accent shadow-glow">
-        {icon ?? <Logo size={22} />}
+      <div className="flex h-16 w-16 items-center justify-center rounded-tile border border-white bg-white/70 text-accent shadow-glass">
+        {icon ?? <Logo size={38} />}
       </div>
       <p className="text-md text-fg">{title}</p>
       {text && <p className="max-w-xs text-sm text-muted">{text}</p>}

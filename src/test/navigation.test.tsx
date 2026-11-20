@@ -48,5 +48,5 @@ describe('navigare prin meniu', () => {
     await go('Statistici', 'Cele mai profitabile comenzi');
     await go('Dashboard', 'Printer board');
     await go('Comenzi', 'CSV comenzi');
-  });
+  }, 15_000); // test de integrare lent: 6 pagini încărcate la cerere
 });

@@ -279,7 +279,7 @@ export function OrderDetailPanel({
         </div>
         {order.descriere && <p className="mt-4 whitespace-pre-wrap text-sm text-fg/90">{order.descriere}</p>}
         {order.note && (
-          <p className="mt-3 whitespace-pre-wrap rounded border border-line bg-white/[0.03] px-3 py-2 text-sm text-muted">
+          <p className="mt-3 whitespace-pre-wrap rounded border border-line bg-white/60 px-3 py-2 text-sm text-muted">
             <span className="label mr-2">Notă</span>
             {order.note}
           </p>

@@ -4,38 +4,31 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     -webkit-tap-highlight-color: transparent;
-    background: #070812;
+    background: #faf7f1;
   }
   body {
     @apply bg-bg text-fg font-sans text-base font-normal antialiased;
-    font-feature-settings: 'ss01', 'cv11';
-    /* fundal „mesh” fix: lumini colorate difuze sub sticlă */
+    /* fundal crem cu lumini calde difuze sub sticlă */
     background-image:
-      radial-gradient(60rem 40rem at 8% -10%, rgba(139, 123, 255, 0.22), transparent 60%),
-      radial-gradient(50rem 36rem at 105% 10%, rgba(56, 213, 245, 0.14), transparent 60%),
-      radial-gradient(48rem 40rem at 60% 115%, rgba(232, 121, 249, 0.12), transparent 60%),
-      linear-gradient(180deg, #080A18 0%, #070812 100%);
+      radial-gradient(56rem 38rem at 6% -8%, rgba(216, 66, 63, 0.13), transparent 60%),
+      radial-gradient(46rem 34rem at 104% 6%, rgba(240, 138, 108, 0.16), transparent 60%),
+      radial-gradient(48rem 40rem at 55% 112%, rgba(245, 176, 1, 0.09), transparent 60%),
+      linear-gradient(180deg, #faf7f1 0%, #f4efe5 100%);
     background-attachment: fixed;
   }
   ::selection {
-    background: rgba(139, 123, 255, 0.35);
+    background: rgba(216, 66, 63, 0.2);
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    scrollbar-color: rgba(26, 23, 20, 0.2) transparent;
   }
   input[type='number']::-webkit-inner-spin-button,
   input[type='number']::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
-  }
-  input[type='date']::-webkit-calendar-picker-indicator {
-    filter: invert(0.7);
-  }
-  select option {
-    background: #11132a;
   }
   /* elementele din grid nu se lățesc după conținut (ex. timeline-ul derulabil) */
   .grid > * {
@@ -51,6 +44,14 @@
   .label {
     @apply text-micro font-medium uppercase text-muted;
   }
+  /* „eyebrow” ca pe site: linie roșie + text roșu uppercase */
+  .eyebrow {
+    @apply flex items-center gap-2.5 text-micro font-medium uppercase text-accent;
+  }
+  .eyebrow::before {
+    content: '';
+    @apply h-px w-5 shrink-0 bg-accent;
+  }
   /* cifre aliniate în tabele */
   .num {
     font-variant-numeric: tabular-nums;
@@ -58,37 +59,37 @@
 
   /* ---------- Sticlă ---------- */
   .glass {
-    @apply border border-line bg-surface shadow-glass;
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
-    backdrop-filter: blur(22px) saturate(160%);
+    @apply border border-white/70 bg-surface shadow-glass;
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    backdrop-filter: blur(20px) saturate(150%);
   }
   /* panou aproape opac pentru elemente plutitoare (modale, meniuri, tooltip-uri) */
   .glass-panel {
-    @apply border border-line-strong bg-panel shadow-glass-lg;
-    -webkit-backdrop-filter: blur(28px) saturate(170%);
-    backdrop-filter: blur(28px) saturate(170%);
+    @apply border border-white bg-panel shadow-glass-lg;
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
   }
   .card {
-    @apply glass relative rounded-card transition-[border-color,box-shadow,transform] duration-300 ease-spring;
+    @apply glass relative rounded-card transition-[box-shadow,transform] duration-300 ease-spring;
     /* reflexie subtilă în colțul de sus */
-    background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 40%);
+    background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 45%);
   }
   .card:hover {
-    @apply border-line-strong;
+    @apply shadow-lift;
   }
   /* „plăcuță” KPI în interiorul unui card */
   .tile {
-    @apply relative overflow-hidden rounded-tile border border-line bg-surface transition-[border-color,background-color,transform] duration-300 ease-spring;
+    @apply relative overflow-hidden rounded-tile border border-line bg-white/50 transition-[box-shadow,background-color,transform] duration-300 ease-spring;
   }
   .tile:hover {
-    @apply -translate-y-0.5 border-line-strong bg-surface-2;
+    @apply -translate-y-[3px] bg-white/90 shadow-lift;
   }
   .tile::after {
     content: '';
     position: absolute;
     inset: 0;
     width: 40%;
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.8), transparent);
     transform: translateX(-120%);
     pointer-events: none;
   }
@@ -97,13 +98,13 @@
   }
 
   .input {
-    @apply h-10 w-full rounded border border-line bg-white/[0.03] px-3 text-md text-fg placeholder:text-muted-2
+    @apply h-10 w-full rounded border border-line bg-white/70 px-3 text-md text-fg placeholder:text-muted-2
       transition-[border-color,background-color,box-shadow] duration-200 hover:border-line-strong
-      focus:border-accent/70 focus:bg-white/[0.05] focus:shadow-[0_0_0_3px_rgba(139,123,255,0.18)] focus:outline-none
+      focus:border-accent/60 focus:bg-white focus:shadow-[0_0_0_3px_rgba(216,66,63,0.14)] focus:outline-none
       sm:h-9 sm:text-base;
   }
   .input-error {
-    @apply border-critical/70 hover:border-critical focus:border-critical focus:shadow-[0_0_0_3px_rgba(255,77,106,0.18)];
+    @apply border-critical/70 hover:border-critical focus:border-critical focus:shadow-[0_0_0_3px_rgba(198,47,44,0.16)];
   }
   .table-dense th {
     @apply label h-9 whitespace-nowrap border-b border-line px-3 text-left font-medium;
@@ -112,18 +113,18 @@
     @apply h-10 whitespace-nowrap border-b border-line px-3 text-sm leading-none;
   }
   .table-dense tbody tr {
-    @apply transition-colors duration-200 hover:bg-white/[0.04];
+    @apply transition-colors duration-200 hover:bg-white/70;
   }
   .table-dense tbody tr:last-child td {
     @apply border-b-0;
   }
 
-  /* text cu gradient pentru titluri */
-  .text-gradient {
-    background: linear-gradient(90deg, #ffffff 0%, #c9c2ff 55%, #8fe6f8 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  /* titluri în Playfair, cu cuvintele <em> în roșu italic – ca pe site */
+  .display {
+    @apply font-display font-normal;
+  }
+  .display em {
+    @apply italic text-accent;
   }
 
   /* intrare în cascadă: copiii apar unul după altul */
@@ -148,7 +149,7 @@
     padding-top: env(safe-area-inset-top);
   }
   .hatch {
-    background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 7px);
+    background-image: repeating-linear-gradient(135deg, rgba(26, 23, 20, 0.06) 0 2px, transparent 2px 7px);
   }
 }
 

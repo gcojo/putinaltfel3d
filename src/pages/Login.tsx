@@ -31,14 +31,15 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-gradient-to-br from-accent to-accent-2 text-white shadow-glow"><Logo size={22} /></span>
+          <Logo size={72} />
           <div>
-            <div className="label text-fg">Print 3D · Control</div>
+            <div className="font-display text-xl font-normal">Răzvan Tofan</div>
             <div className="text-xs text-muted">Bambu Lab A1</div>
           </div>
         </div>
         <form onSubmit={submit} noValidate className="card flex animate-pop-in flex-col gap-4 p-6">
-          <h1 className="text-gradient text-xl font-light">Autentificare</h1>
+          <div className="eyebrow">Departament printare 3D</div>
+          <h1 className="display -mt-1 text-[30px] leading-tight">Bine ai <em>revenit.</em></h1>
           <Field label="Email" error={fieldErr.email} htmlFor="email">
             <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldErr.email} autoFocus />
           </Field>

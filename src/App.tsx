@@ -21,7 +21,7 @@ const SettingsPage = lazy(() => import('@/pages/Settings'));
 function Splash() {
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <Logo size={32} className="animate-shimmer" />
+      <Logo size={64} still className="animate-heartbeat" />
     </div>
   );
 }

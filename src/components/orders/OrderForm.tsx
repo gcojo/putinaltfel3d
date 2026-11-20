@@ -272,7 +272,7 @@ export function OrderFormPanel({
         </div>
 
         {/* Calculator automat */}
-        <div className="rounded-tile border border-line bg-white/[0.03]">
+        <div className="rounded-tile border border-line bg-white/60">
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
             <span className="label flex items-center gap-2">
               <Calculator className="h-3.5 w-3.5" /> Calculator cost

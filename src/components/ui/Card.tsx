@@ -8,10 +8,7 @@ export function CardHeader({ title, right, sub }: { title: string; right?: React
   return (
     <header className="flex min-h-[52px] items-center justify-between gap-3 border-b border-line px-5 py-3">
       <div className="flex min-w-0 items-center gap-2">
-        <h2 className="flex items-center gap-2 truncate text-micro font-medium uppercase text-fg/90">
-          <span className="h-3 w-[3px] shrink-0 rounded-full bg-gradient-to-b from-accent to-accent-2" aria-hidden />
-          {title}
-        </h2>
+        <h2 className="eyebrow truncate">{title}</h2>
         {sub && <span className="truncate text-xs text-muted">{sub}</span>}
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
@@ -28,7 +25,7 @@ export function Kpi({
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <span className="label">{label}</span>
-      <span className={`num ${sz} font-light ${color} truncate`}>{value}</span>
+      <span className={`num font-display ${sz} font-normal ${color} truncate`}>{value}</span>
       {sub && <span className="num text-xs text-muted">{sub}</span>}
     </div>
   );
@@ -47,7 +44,7 @@ export function Stat({ label, value, className = '' }: { label: string; value: R
 export function ProgressBar({ value, signal = 'ok', className = '' }: { value: number; signal?: 'ok' | 'warning' | 'critical' | 'neutral'; className?: string }) {
   const bg = signal === 'ok' ? 'bg-ok' : signal === 'warning' ? 'bg-warning' : signal === 'critical' ? 'bg-critical' : 'bg-gradient-to-r from-accent to-accent-2';
   return (
-    <div className={`h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07] ${className}`} role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}>
+    <div className={`h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.07] ${className}`} role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}>
       <div className={`h-full rounded-full ${bg} transition-[width] duration-500 ease-spring`} style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
     </div>
   );

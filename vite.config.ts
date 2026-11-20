@@ -12,14 +12,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'heart.png'],
       manifest: {
-        name: 'Putin Altfel 3D — Control',
+        name: 'Răzvan Tofan · putinALTFEL 3D',
         short_name: 'Print 3D',
         description: 'Panou de administrare pentru printare 3D',
         lang: 'ro',
-        theme_color: '#070812',
-        background_color: '#070812',
+        theme_color: '#FAF7F1',
+        background_color: '#FAF7F1',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

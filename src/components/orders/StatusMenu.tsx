@@ -43,7 +43,7 @@ export function StatusMenu({ order, short = false }: { order: Order; short?: boo
       <button
         ref={btn}
         onClick={toggle}
-        className="-mx-1.5 rounded px-1.5 py-1 transition-colors duration-150 hover:bg-surface-3"
+        className="-mx-1.5 rounded px-1.5 py-1 transition-colors duration-150 hover:bg-ink/[0.05]"
         title="Schimbă statusul"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -65,7 +65,7 @@ export function StatusMenu({ order, short = false }: { order: Order; short?: boo
                   key={s.value}
                   role="menuitem"
                   onClick={() => pick(s.value)}
-                  className="flex h-9 w-full items-center gap-2.5 px-3 text-left text-sm transition-colors duration-150 hover:bg-surface-3"
+                  className="flex h-9 w-full items-center gap-2.5 px-3 text-left text-sm transition-colors duration-150 hover:bg-ink/[0.05]"
                 >
                   <Dot signal={s.signal} />
                   <span className="flex-1">{s.label}</span>

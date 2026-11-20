@@ -234,7 +234,6 @@ npm run dev        # server local
 npm run build      # verificare tipuri + build de producție în dist/
 npm test           # teste unitare (programare coadă, calcule) + teste de randare a paginilor
 npm run test:sql   # rulează migrațiile + seed-ul pe un Postgres local (PGlite) și verifică RLS, triggere, încasări
-npm run icons      # regenerează iconițele PWA din public/
 ```
 
 **Previzualizare fără Supabase:** cu `npm run dev` pornit, deschide <http://localhost:5173/preview.html#/> — aplicația cu date de test, utilă pentru lucrul la design. Rute: `#/comenzi`, `#/coada`, `#/clienti`, `#/statistici`, `#/setari`; `#/comenzi?open=12` deschide panoul comenzii #12, `?new=1` formularul. Această pagină nu intră în build-ul de producție.

@@ -188,7 +188,7 @@ export default function SettingsPage() {
                         key={d}
                         type="button"
                         onClick={() => set('freeDays', on ? f.freeDays.filter((x) => x !== d) : [...f.freeDays, d])}
-                        className={`h-9 rounded border px-3 text-sm transition-colors duration-150 ${on ? 'border-accent/50 bg-gradient-to-r from-accent/40 to-accent-2/20 text-fg' : 'border-line text-muted hover:text-fg'}`}
+                        className={`h-9 rounded border px-3 text-sm transition-colors duration-150 ${on ? 'border-accent bg-accent text-white shadow-glow' : 'border-line text-muted hover:text-fg'}`}
                         aria-pressed={on}
                       >
                         {WEEKDAYS[d].slice(0, 3)}

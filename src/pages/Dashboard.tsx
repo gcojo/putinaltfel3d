@@ -158,7 +158,7 @@ export default function DashboardPage() {
           {/* Pod: Atenționări */}
           <section>
             <div className="mb-3 flex items-center gap-2">
-              <h2 className="label text-fg/90">Atenționări</h2>
+              <h2 className="eyebrow">Atenționări</h2>
               <span className="num text-xs text-muted">{warnings.length}</span>
             </div>
             {warnings.length === 0 ? (

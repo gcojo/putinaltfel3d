@@ -21,26 +21,26 @@ export function MonthlyBarChart<T extends { key: string; label: string }>({
         <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="28%">
           <defs>
             <linearGradient id="bar-current" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#38D5F5" />
-              <stop offset="100%" stopColor="#8B7BFF" />
+              <stop offset="0%" stopColor="#F08A6C" />
+              <stop offset="100%" stopColor="#D8423F" />
             </linearGradient>
             <linearGradient id="bar-rest" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(139,123,255,0.45)" />
-              <stop offset="100%" stopColor="rgba(139,123,255,0.12)" />
+              <stop offset="0%" stopColor="rgba(216,66,63,0.32)" />
+              <stop offset="100%" stopColor="rgba(216,66,63,0.08)" />
             </linearGradient>
           </defs>
-          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 4" />
-          <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tick={{ fill: '#9298AE', fontSize: 10 }} interval="preserveStartEnd" minTickGap={4} />
+          <CartesianGrid vertical={false} stroke="rgba(26,23,20,0.07)" strokeDasharray="3 4" />
+          <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'rgba(26,23,20,0.12)' }} tick={{ fill: '#6B6660', fontSize: 10 }} interval="preserveStartEnd" minTickGap={4} />
           <YAxis
             tickLine={false}
             axisLine={false}
             width={44}
-            tick={{ fill: '#5F6580', fontSize: 10 }}
+            tick={{ fill: '#A39D95', fontSize: 10 }}
             tickFormatter={(v: number) => (v >= 1000 ? `${num(v / 1000, 1)}k` : num(v))}
             allowDecimals={false}
           />
           <Tooltip
-            cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+            cursor={{ fill: 'rgba(216,66,63,0.06)' }}
             content={({ active, payload, label }) =>
               active && payload?.length ? (
                 <div className="glass-panel rounded px-3 py-2 text-sm">
@@ -53,7 +53,7 @@ export function MonthlyBarChart<T extends { key: string; label: string }>({
               ) : null
             }
           />
-          <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} maxBarSize={28} animationDuration={700} animationEasing="ease-out">
+          <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} maxBarSize={28} isAnimationActive={false}>
             {data.map((d) => (
               <Cell key={d.key} fill={d.key === last ? 'url(#bar-current)' : 'url(#bar-rest)'} />
             ))}

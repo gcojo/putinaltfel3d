@@ -90,7 +90,7 @@ export default function StatsPage() {
                         <span>{m.material}</span>
                         <span>{smart(m.kg, 2)} kg</span>
                       </div>
-                      <div className="mt-1.5 h-1 rounded-full bg-white/[0.07]">
+                      <div className="mt-1.5 h-1 rounded-full bg-ink/[0.07]">
                         <div className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-accent to-accent-2' : 'bg-accent/30'}`} style={{ width: `${(m.kg / maxKg) * 100}%` }} />
                       </div>
                     </li>
