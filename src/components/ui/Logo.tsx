@@ -27,15 +27,14 @@ export function Logo({ size = 24, className = '', still = false }: { size?: numb
   );
 }
 
-/** Semnul de brand: inimioară + „Răzvan Tofan” + numele departamentului. */
+/** Semnul de brand: inimioară + „putinALTFEL 3D”. */
 export function BrandMark({ size = 40, compact = false }: { size?: number; compact?: boolean }) {
   return (
     <span className="group flex min-w-0 items-center gap-3">
       <Logo size={size} className="group-hover:rotate-6 group-hover:scale-105" />
       {!compact && (
-        <span className="flex min-w-0 flex-col leading-none">
-          <span className="truncate font-display text-[17px] font-medium tracking-[0.02em] text-fg">Răzvan Tofan</span>
-          <span className="mt-1 truncate text-[9px] font-medium uppercase tracking-[0.2em] text-accent">putinALTFEL · 3D</span>
+        <span className="truncate font-display text-[19px] font-medium leading-none tracking-[0.01em] text-fg">
+          putinALTFEL <span className="font-normal italic text-accent">3D</span>
         </span>
       )}
     </span>
