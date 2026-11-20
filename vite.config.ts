@@ -12,7 +12,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'heart.png'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'heart-128.png', 'heart-256.png', 'heart-512.png'],
       manifest: {
         name: 'Răzvan Tofan · putinALTFEL 3D',
         short_name: 'Print 3D',

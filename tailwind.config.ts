@@ -16,7 +16,7 @@ export default {
       bg: '#FAF7F1', // crem (fundalul site-ului)
       'bg-soft': '#F2EDE2',
       // sticlă: alb translucid peste fundalul crem
-      surface: { DEFAULT: 'rgba(255,255,255,0.58)', 2: 'rgba(255,255,255,0.82)', 3: 'rgba(255,255,255,0.95)' },
+      surface: { DEFAULT: 'rgba(255,255,255,0.36)', 2: 'rgba(255,255,255,0.62)', 3: 'rgba(255,255,255,0.85)' },
       line: { DEFAULT: 'rgba(26,23,20,0.09)', strong: 'rgba(26,23,20,0.18)' }, // borduri subțiri
       panel: 'rgba(255,253,249,0.9)', // panouri plutitoare (modale, meniuri, tooltip-uri)
       fg: '#1A1714', // conținut normal
@@ -78,11 +78,11 @@ export default {
         },
         // inimioara „bate” ușor și se balansează
         heartbeat: {
-          '0%, 100%': { transform: 'rotate(-6deg) scale(1)' },
-          '8%': { transform: 'rotate(-6deg) scale(1.08)' },
-          '16%': { transform: 'rotate(-6deg) scale(1)' },
-          '24%': { transform: 'rotate(-6deg) scale(1.05)' },
-          '34%': { transform: 'rotate(-6deg) scale(1)' },
+          '0%, 100%': { transform: 'scale(1)' },
+          '8%': { transform: 'scale(1.08)' },
+          '16%': { transform: 'scale(1)' },
+          '24%': { transform: 'scale(1.05)' },
+          '34%': { transform: 'scale(1)' },
         },
         float: {
           '0%, 100%': { transform: 'rotate(-12deg) translateY(0)' },

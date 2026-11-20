@@ -55,11 +55,17 @@ export function AppLayout() {
   return (
     <div className="relative isolate min-h-screen md:flex">
       {/* Lumini calde care plutesc lent în spatele sticlei + inimioara mare, estompată */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
-        <div className="absolute -left-32 -top-40 h-[34rem] w-[34rem] animate-drift rounded-full bg-accent/[0.14] blur-[120px]" />
-        <div className="absolute -right-40 top-1/4 h-[30rem] w-[30rem] animate-drift rounded-full bg-accent-2/[0.18] blur-[120px] [animation-delay:-10s]" />
-        <div className="absolute -bottom-40 left-1/3 h-[28rem] w-[28rem] animate-drift rounded-full bg-accent-3/[0.1] blur-[130px] [animation-delay:-20s]" />
-        <img src="/heart.png" alt="" className="absolute -bottom-24 -right-16 h-[min(70vh,620px)] w-auto animate-float opacity-[0.07] blur-[1px]" />
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-55 md:opacity-100" aria-hidden>
+        {/* culori mai saturate: sticla are ce să estompeze, deci efectul se vede */}
+        <div className="absolute -left-24 -top-32 h-[32rem] w-[32rem] animate-drift rounded-full bg-accent/[0.32] blur-[90px]" />
+        <div className="absolute -right-32 top-[18%] h-[30rem] w-[30rem] animate-drift rounded-full bg-accent-2/[0.42] blur-[90px] [animation-delay:-8s]" />
+        <div className="absolute bottom-[-10rem] left-[28%] h-[30rem] w-[30rem] animate-drift rounded-full bg-accent-3/[0.26] blur-[100px] [animation-delay:-16s]" />
+        <div className="absolute left-[45%] top-[35%] h-[22rem] w-[22rem] animate-drift rounded-full bg-[#F7B2C4]/[0.4] blur-[90px] [animation-delay:-23s]" />
+        <img
+          src="/heart-512.png"
+          alt=""
+          className="absolute -bottom-20 -right-10 h-[min(72vh,640px)] w-auto animate-float opacity-[0.16]"
+        />
       </div>
 
       {/* Sidebar desktop: panou de sticlă plutitor, doar iconițe + tooltip, extensibil */}
@@ -67,7 +73,7 @@ export function AppLayout() {
         className={`glass sticky top-3 z-30 my-3 ml-3 hidden h-[calc(100vh-24px)] shrink-0 flex-col rounded-card transition-[width] duration-300 ease-spring md:flex ${expanded ? 'w-56' : 'w-[68px]'}`}
       >
         <div className={`flex h-[72px] items-center ${expanded ? 'px-4' : 'justify-center'}`}>
-          <BrandMark size={44} compact={!expanded} />
+          <BrandMark size={48} compact={!expanded} />
         </div>
         <nav className="flex flex-1 flex-col gap-1.5 px-3 py-2">
           {NAV.map(({ to, label, icon: Icon, end }) => (
