@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg text-fg font-sans text-base font-normal antialiased;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+  ::selection {
+    @apply bg-surface-3;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2e333b transparent;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+  }
+  /* elementele din grid nu se lățesc după conținut (ex. timeline-ul derulabil) */
+  .grid > * {
+    min-width: 0;
+  }
+  :focus-visible {
+    @apply outline outline-1 outline-offset-2 outline-muted;
+  }
+}
+
+@layer components {
+  /* etichetă scurtă uppercase cu letter-spacing */
+  .label {
+    @apply text-micro font-medium uppercase text-muted;
+  }
+  /* cifre aliniate în tabele */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .card {
+    @apply rounded-card border border-line bg-surface;
+  }
+  .input {
+    @apply h-10 w-full rounded border border-line bg-bg px-3 text-md text-fg placeholder:text-muted-2
+      transition-colors duration-150 hover:border-line-strong focus:border-muted focus:outline-none
+      sm:h-9 sm:text-base;
+  }
+  .input-error {
+    @apply border-critical/70 hover:border-critical focus:border-critical;
+  }
+  .table-dense th {
+    @apply label h-8 whitespace-nowrap border-b border-line px-3 text-left font-medium;
+  }
+  .table-dense td {
+    @apply h-9 whitespace-nowrap border-b border-line px-3 text-sm leading-none;
+  }
+  .table-dense tbody tr {
+    @apply transition-colors duration-150 hover:bg-surface-2;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .hatch {
+    background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 7px);
+  }
+}
