@@ -33,8 +33,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # site-ul stă la https://<utilizator>.github.io/<repo>/
-          BASE_PATH: /${{ github.event.repository.name }}/
+          # repo „<nume>.github.io” → site la rădăcină („/”); altfel → subfolder „/<repo>/”
+          BASE_PATH: ${{ endsWith(github.event.repository.name, '.github.io') && '/' || format('/{0}/', github.event.repository.name) }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       # GitHub Pages nu știe de rutele aplicației: la refresh pe /comenzi ar da 404.
