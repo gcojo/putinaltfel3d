@@ -69,6 +69,38 @@ Aplicația e doar pentru tine, deci contul se creează manual, din Supabase:
 
 > Chiar dacă cineva ar reuși să-și facă un cont, regulile de securitate (Row Level Security) îl împiedică să vadă datele tale: fiecare utilizator vede doar rândurile lui.
 
+### Login cu utilizator (ex. `admin`) în loc de email
+
+Supabase se autentifică doar cu email, așa că aplicația transformă un nume de utilizator într-o adresă internă:
+`admin` → `admin@putinaltfel3d.local`. Pe pagina de login poți scrie fie numele, fie un email complet.
+
+Ca să intri cu `admin`, contul din Supabase trebuie să aibă adresa `admin@putinaltfel3d.local`.
+Ai deja un cont cu date? **Schimbă-i adresa** (nu crea unul nou — comenzile și clienții sunt legați de cont).
+În Supabase → **SQL Editor** (înlocuiește emailul vechi și parola):
+
+```sql
+update auth.users
+set email = 'admin@putinaltfel3d.local',
+    encrypted_password = extensions.crypt('ParolaTaNoua', extensions.gen_salt('bf')),
+    updated_at = now()
+where email = 'emailul-vechi@exemplu.ro';
+
+update auth.identities
+set identity_data = jsonb_set(identity_data, '{email}', '"admin@putinaltfel3d.local"')
+where provider = 'email'
+  and user_id = (select id from auth.users where email = 'admin@putinaltfel3d.local');
+```
+
+**Doar schimbarea parolei** (păstrezi adresa):
+
+```sql
+update auth.users
+set encrypted_password = extensions.crypt('ParolaTaNoua', extensions.gen_salt('bf')), updated_at = now()
+where email = 'admin@putinaltfel3d.local';
+```
+
+> Adresa `.local` nu primește emailuri, deci *Send password recovery* nu funcționează pentru ea — parola se schimbă cu interogarea de mai sus.
+
 ## 5. (Opțional) Încarcă datele de test
 
 Ca să vezi aplicația „plină”: 5 clienți și 15 comenzi în toate statusurile, inclusiv una care ratează deadline-ul.
@@ -217,7 +249,7 @@ Pagina **Comenzi** → **CSV comenzi** (exportă comenzile filtrate) sau **CSV �
 
 **„Lipsesc cheile Supabase”** — fișierul `.env.local` lipsește sau e greșit (local), ori nu ai adăugat variabilele de mediu în Cloudflare/Netlify. După ce le adaugi online, refă deploy-ul.
 
-**„Email sau parolă greșită”** — verifică userul în Supabase → Authentication → Users. Dacă userul nu e confirmat, șterge-l și creează-l din nou bifând *Auto Confirm User*.
+**„Utilizator sau parolă greșită”** — verifică userul în Supabase → Authentication → Users. Dacă userul nu e confirmat, șterge-l și creează-l din nou bifând *Auto Confirm User*.
 
 **Aplicația nu mai încarcă datele după o pauză lungă** — pe planul gratuit, Supabase **pune proiectul pe pauză după ~7 zile fără activitate**. Intră pe supabase.com, deschide proiectul și apasă **Restore project**. Folosită zilnic, aplicația nu intră în pauză.
 

@@ -10,7 +10,7 @@ export class ApiError extends Error {}
 export function friendlyError(err: unknown): string {
   const raw = err instanceof Error ? err.message : typeof err === 'object' && err && 'message' in err ? String((err as { message: unknown }).message) : String(err);
   const m = raw.toLowerCase();
-  if (m.includes('invalid login credentials')) return 'Email sau parolă greșită.';
+  if (m.includes('invalid login credentials')) return 'Utilizator sau parolă greșită.';
   if (m.includes('email not confirmed')) return 'Emailul nu este confirmat. Confirmă-l din Supabase (Authentication → Users).';
   if (m.includes('failed to fetch') || m.includes('networkerror') || m.includes('network request failed'))
     return 'Nu există conexiune la server. Verifică internetul și încearcă din nou.';

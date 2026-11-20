@@ -4,13 +4,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
+import { loginToEmail } from '@/lib/login';
 
 export default function LoginPage() {
   const { session, loading, signIn } = useAuth();
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [fieldErr, setFieldErr] = useState<{ email?: string; password?: string }>({});
+  const [fieldErr, setFieldErr] = useState<{ login?: string; password?: string }>({});
   const [busy, setBusy] = useState(false);
 
   if (!loading && session) return <Navigate to="/" replace />;
@@ -18,10 +19,11 @@ export default function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: typeof fieldErr = {};
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) errs.email = 'Introdu o adresă de email validă.';
+    const email = loginToEmail(login);
+    if (!email) errs.login = 'Introdu utilizatorul (ex. admin) sau o adresă de email.';
     if (!password) errs.password = 'Introdu parola.';
     setFieldErr(errs);
-    if (errs.email || errs.password) return;
+    if (!email || errs.password) return;
     setBusy(true);
     setError(await signIn(email, password));
     setBusy(false);
@@ -40,8 +42,20 @@ export default function LoginPage() {
         <form onSubmit={submit} noValidate className="card flex animate-pop-in flex-col gap-4 p-6">
           <div className="eyebrow">Departament printare 3D</div>
           <h1 className="display -mt-1 text-[30px] leading-tight">Bine ai <em>revenit.</em></h1>
-          <Field label="Email" error={fieldErr.email} htmlFor="email">
-            <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!fieldErr.email} autoFocus />
+          <Field label="Utilizator sau email" error={fieldErr.login} htmlFor="login">
+            <Input
+              id="login"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="admin"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+              invalid={!!fieldErr.login}
+              autoFocus
+            />
           </Field>
           <Field label="Parolă" error={fieldErr.password} htmlFor="password">
             <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!fieldErr.password} />
