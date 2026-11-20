@@ -43,7 +43,11 @@ export function AppLayout() {
     }
   }, [expanded]);
 
-  useEffect(() => window.scrollTo(0, 0), [location.pathname]);
+  // acoladele contează: în Chromium nou scrollTo() returnează un Promise, iar React
+  // l-ar trata drept funcție de curățare și s-ar bloca la schimbarea paginii
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen md:flex">

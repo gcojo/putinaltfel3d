@@ -38,15 +38,8 @@ export default defineConfig({
     }),
   ],
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          charts: ['recharts'],
-          supabase: ['@supabase/supabase-js'],
-        },
-      },
-    },
+    // paginile secundare sunt încărcate la cerere (lazy), restul e un singur bundle
+    chunkSizeWarningLimit: 1000,
   },
   test: {
     environment: 'jsdom',

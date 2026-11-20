@@ -5,6 +5,8 @@ class RO {
   disconnect() {}
 }
 (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = RO;
+// Ca în Chromium nou: scrollTo() returnează un Promise (prinde efecte care îl returnează din greșeală).
+window.scrollTo = (() => Promise.resolve()) as unknown as typeof window.scrollTo;
 if (!window.matchMedia) {
   window.matchMedia = (q: string) =>
     ({
