@@ -1,30 +1,37 @@
 import type { Config } from 'tailwindcss';
 
+/** Culoare dintr-o variabilă CSS cu triplet RGB – suportă modificatori de opacitate (`bg-fg/50`). */
+const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
+
 /**
  * Design tokens – identitatea „putinALTFEL” (razvantofan.ro), departamentul de printare 3D.
- * Fundal crem cald, cerneală aproape neagră, roșu de brand; carduri de sticlă albă translucidă.
+ * Valorile reale stau în variabile CSS (src/index.css): `:root` = tema crem, `.dark` = tema închisă.
+ * Roșul de brand e același în ambele teme.
  */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     colors: {
       transparent: 'transparent',
       current: 'currentColor',
-      black: '#000000', // doar pentru overlay-uri
-      white: '#FFFFFF',
-      ink: '#1A1714', // baza pentru umbre / nuanțe translucide
-      bg: '#FAF7F1', // crem (fundalul site-ului)
-      'bg-soft': '#F2EDE2',
-      // sticlă: alb translucid peste fundalul crem
-      surface: { DEFAULT: 'rgba(255,255,255,0.36)', 2: 'rgba(255,255,255,0.62)', 3: 'rgba(255,255,255,0.85)' },
-      line: { DEFAULT: 'rgba(26,23,20,0.09)', strong: 'rgba(26,23,20,0.18)' }, // borduri subțiri
-      panel: 'rgba(255,253,249,0.9)', // panouri plutitoare (modale, meniuri, tooltip-uri)
-      fg: '#1A1714', // conținut normal
-      muted: { DEFAULT: '#6B6660', 2: '#A39D95' }, // text secundar / terțiar
+      black: '#000000', // overlay-uri
+      white: '#FFFFFF', // text pe roșu
+      ink: v('ink'), // nuanță de contrast pentru fundaluri subtile (închisă pe crem, deschisă pe întuneric)
+      glass: v('glass'), // materialul sticlei: alb pe crem, maro-cald închis pe întuneric
+      // muchia luminoasă a sticlei: alb, mult mai discret în tema închisă
+      edge: 'rgb(255 255 255 / calc(<alpha-value> * var(--edge-k)))',
+      bg: v('bg'),
+      'bg-soft': v('bg-soft'),
+      surface: { DEFAULT: 'var(--surface)', 2: 'var(--surface-2)', 3: 'var(--surface-3)' },
+      line: { DEFAULT: 'var(--line)', strong: 'var(--line-strong)' }, // borduri subțiri
+      panel: 'var(--panel)', // panouri plutitoare (modale, meniuri, tooltip-uri)
+      fg: v('fg'), // conținut normal
+      muted: { DEFAULT: v('muted'), 2: v('muted-2') }, // text secundar / terțiar
       accent: { DEFAULT: '#D8423F', 2: '#F08A6C', 3: '#F5B001', soft: '#B8332F' }, // roșu brand / piersică / auriu
-      critical: '#C62F2C', // roșu – critic
-      warning: '#D98324', // portocaliu – atenție
-      ok: '#3E9B5C', // verde – operațional
+      critical: v('critical'), // roșu – critic
+      warning: v('warning'), // portocaliu – atenție
+      ok: v('ok'), // verde – operațional
     },
     fontFamily: {
       sans: ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
@@ -52,9 +59,9 @@ export default {
         bounce: 'cubic-bezier(.4,.1,.3,1.4)', // la fel ca logo-ul de pe site
       },
       boxShadow: {
-        glass: 'inset 0 1px 0 0 rgba(255,255,255,0.9), 0 1px 2px rgba(40,30,20,0.04), 0 14px 40px -18px rgba(40,30,20,0.18)',
-        'glass-lg': 'inset 0 1px 0 0 rgba(255,255,255,0.9), 0 30px 80px -24px rgba(40,30,20,0.32)',
-        lift: '0 18px 40px -18px rgba(40,30,20,0.25)',
+        glass: 'var(--shadow-glass)',
+        'glass-lg': 'var(--shadow-glass-lg)',
+        lift: 'var(--shadow-lift)',
         glow: '0 10px 26px -10px rgba(216,66,63,0.65)',
         sticker: '0 6px 14px rgba(40,30,20,0.18), 0 2px 4px rgba(40,30,20,0.12)',
       },

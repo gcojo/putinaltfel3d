@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Previzualizare (date de test)</title>
+    <script>
+      // tema aleasă se aplică înainte de afișare, ca să nu clipească pagina în crem
+      try {
+        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <!-- Doar pentru dezvoltare: aplicația cu date de test, fără Supabase. Deschide /preview.html#/coada etc. -->

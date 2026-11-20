@@ -59,7 +59,7 @@ export function Segmented<T extends string>({
   value, onChange, options,
 }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div className="flex h-10 rounded border border-line bg-white/60 p-0.5 sm:h-9" role="radiogroup">
+    <div className="flex h-10 rounded border border-line bg-glass/60 p-0.5 sm:h-9" role="radiogroup">
       {options.map((o) => (
         <button
           key={o.value}

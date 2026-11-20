@@ -1,13 +1,25 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  ChartColumn, ChevronsLeft, ChevronsRight, LayoutGrid, ListOrdered, LogOut, Package, Plus, Settings, Users,
+  ChartColumn, ChevronsLeft, ChevronsRight, LayoutGrid, ListOrdered, LogOut, Moon, Package, Plus, Settings, Sun, Users,
 } from 'lucide-react';
 import { BrandMark } from '@/components/ui/Logo';
 import { Dot } from '@/components/ui/Status';
 import { useAuth } from '@/hooks/useAuth';
 import { useData } from '@/hooks/useData';
 import { useOrderPanel } from '@/components/orders/OrderPanelProvider';
+import { useTheme } from '@/hooks/useTheme';
+
+/** Soare / lună suprapuse: iconița activă intră rotindu-se, cealaltă iese. */
+function ThemeIcon({ dark, className = 'h-[18px] w-[18px]' }: { dark: boolean; className?: string }) {
+  const base = `absolute inset-0 transition-all duration-500 ease-bounce ${className}`;
+  return (
+    <span className={`relative shrink-0 ${className}`}>
+      <Sun className={`${base} ${dark ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} strokeWidth={1.6} />
+      <Moon className={`${base} ${dark ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} strokeWidth={1.6} />
+    </span>
+  );
+}
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
@@ -24,6 +36,8 @@ export function AppLayout() {
   const { signOut, session } = useAuth();
   const { warnings, schedule } = useData();
   const { newOrder } = useOrderPanel();
+  const { isDark, toggle: toggleTheme } = useTheme();
+  const themeLabel = isDark ? 'Mod luminos' : 'Mod întunecat';
   const [expanded, setExpanded] = useState(() => {
     try {
       return localStorage.getItem(EXPANDED_KEY) === '1';
@@ -50,12 +64,12 @@ export function AppLayout() {
   }, [location.pathname]);
 
   const sideBtn =
-    'flex h-10 items-center gap-3 rounded-[12px] px-[12px] text-muted transition-colors duration-200 hover:bg-white/80 hover:text-fg';
+    'flex h-10 items-center gap-3 rounded-[12px] px-[12px] text-muted transition-colors duration-200 hover:bg-glass/80 hover:text-fg';
 
   return (
     <div className="relative isolate min-h-screen md:flex">
       {/* Lumini calde care plutesc lent în spatele sticlei + inimioara mare, estompată */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-55 md:opacity-100" aria-hidden>
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-55 transition-opacity duration-500 md:opacity-100 dark:opacity-40 md:dark:opacity-60" aria-hidden>
         {/* culori mai saturate: sticla are ce să estompeze, deci efectul se vede */}
         <div className="absolute -left-24 -top-32 h-[32rem] w-[32rem] animate-drift rounded-full bg-accent/[0.32] blur-[90px]" />
         <div className="absolute -right-32 top-[18%] h-[30rem] w-[30rem] animate-drift rounded-full bg-accent-2/[0.42] blur-[90px] [animation-delay:-8s]" />
@@ -64,7 +78,7 @@ export function AppLayout() {
         <img
           src="/heart-512.png"
           alt=""
-          className="absolute -bottom-20 -right-10 h-[min(72vh,640px)] w-auto animate-float opacity-[0.16]"
+          className="absolute -bottom-20 -right-10 h-[min(72vh,640px)] w-auto animate-float opacity-[0.16] dark:opacity-[0.12]"
         />
       </div>
 
@@ -85,7 +99,7 @@ export function AppLayout() {
                 `group relative flex h-11 items-center gap-3 rounded-[12px] px-[12px] transition-all duration-300 ease-spring ${
                   isActive
                     ? 'bg-accent text-white shadow-glow'
-                    : 'text-muted hover:translate-x-0.5 hover:bg-white/80 hover:text-fg'
+                    : 'text-muted hover:translate-x-0.5 hover:bg-glass/80 hover:text-fg'
                 }`
               }
             >
@@ -102,6 +116,10 @@ export function AppLayout() {
           ))}
         </nav>
         <div className="flex flex-col gap-1 border-t border-line px-3 py-3">
+          <button onClick={toggleTheme} className={sideBtn} title={themeLabel} aria-label={themeLabel}>
+            <ThemeIcon dark={isDark} />
+            {expanded && <span className="truncate text-base">{themeLabel}</span>}
+          </button>
           <button onClick={() => setExpanded((e) => !e)} className={sideBtn} title={expanded ? 'Restrânge meniul' : 'Extinde meniul'}>
             {expanded ? <ChevronsLeft className="h-[18px] w-[18px]" strokeWidth={1.6} /> : <ChevronsRight className="h-[18px] w-[18px]" strokeWidth={1.6} />}
             {expanded && <span className="text-base">Restrânge</span>}
@@ -120,6 +138,9 @@ export function AppLayout() {
             <BrandMark size={34} />
           </div>
           <div className="flex items-center gap-1">
+            <button onClick={toggleTheme} className="flex h-9 w-9 items-center justify-center rounded text-muted" aria-label={themeLabel}>
+              <ThemeIcon dark={isDark} />
+            </button>
             <NavLink to="/setari" className="flex h-9 w-9 items-center justify-center rounded text-muted" aria-label="Setări">
               <Settings className="h-[18px] w-[18px]" strokeWidth={1.6} />
             </NavLink>

@@ -3,27 +3,96 @@
 @tailwind utilities;
 
 @layer base {
-  html {
+  /* ---------- Tema crem (implicită) ---------- */
+  :root {
     color-scheme: light;
+    --bg: 250 247 241;
+    --bg-soft: 242 237 226;
+    --bg-end: #f4efe5;
+    --fg: 26 23 20;
+    --muted: 107 102 96;
+    --muted-2: 163 157 149;
+    --ink: 26 23 20;
+    --glass: 255 255 255;
+    --edge-k: 1;
+    --surface: rgba(255, 255, 255, 0.36);
+    --surface-2: rgba(255, 255, 255, 0.62);
+    --surface-3: rgba(255, 255, 255, 0.85);
+    --line: rgba(26, 23, 20, 0.09);
+    --line-strong: rgba(26, 23, 20, 0.18);
+    --panel: rgba(255, 253, 249, 0.9);
+    --critical: 198 47 44;
+    --warning: 217 131 36;
+    --ok: 62 155 92;
+    --shadow-glass: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(40, 30, 20, 0.04), 0 14px 40px -18px rgba(40, 30, 20, 0.18);
+    --shadow-glass-lg: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 30px 80px -24px rgba(40, 30, 20, 0.32);
+    --shadow-lift: 0 18px 40px -18px rgba(40, 30, 20, 0.25);
+    --shadow-tile: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 16px -8px rgba(40, 30, 20, 0.12);
+    --glow-a: 0.13; /* intensitatea luminilor din fundalul paginii */
+    --sheen: rgba(255, 255, 255, 0.55);
+    --sheen-tile: rgba(255, 255, 255, 0.8);
+    --edge-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.15) 40%, rgba(216, 66, 63, 0.12) 75%, rgba(255, 255, 255, 0.5));
+  }
+
+  /* ---------- Tema închisă: același stil cald, sticlă fumurie ---------- */
+  .dark {
+    color-scheme: dark;
+    --bg: 23 18 16;
+    --bg-soft: 32 26 23;
+    --bg-end: #110d0c;
+    --fg: 246 239 231;
+    --muted: 181 170 160;
+    --muted-2: 125 115 107;
+    --ink: 255 240 228;
+    --glass: 48 39 35;
+    --edge-k: 0.16;
+    --surface: rgba(44, 35, 32, 0.42);
+    --surface-2: rgba(58, 47, 43, 0.62);
+    --surface-3: rgba(70, 58, 53, 0.85);
+    --line: rgba(255, 240, 228, 0.09);
+    --line-strong: rgba(255, 240, 228, 0.18);
+    --panel: rgba(33, 26, 24, 0.92);
+    --critical: 240 96 92;
+    --warning: 240 160 80;
+    --ok: 92 192 122;
+    --shadow-glass: inset 0 1px 0 0 rgba(255, 255, 255, 0.07), 0 1px 2px rgba(0, 0, 0, 0.2), 0 18px 44px -18px rgba(0, 0, 0, 0.7);
+    --shadow-glass-lg: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+    --shadow-lift: 0 22px 44px -18px rgba(0, 0, 0, 0.75);
+    --shadow-tile: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 18px -8px rgba(0, 0, 0, 0.5);
+    --glow-a: 0.2;
+    --sheen: rgba(255, 255, 255, 0.07);
+    --sheen-tile: rgba(255, 255, 255, 0.1);
+    --edge-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.03) 40%, rgba(216, 66, 63, 0.22) 75%, rgba(255, 255, 255, 0.08));
+  }
+
+  html {
     -webkit-tap-highlight-color: transparent;
-    background: #faf7f1;
+    background: rgb(var(--bg));
   }
   body {
     @apply bg-bg text-fg font-sans text-base font-normal antialiased;
-    /* fundal crem cu lumini calde difuze sub sticlă */
+    /* fundal cald cu lumini difuze sub sticlă */
     background-image:
-      radial-gradient(56rem 38rem at 6% -8%, rgba(216, 66, 63, 0.13), transparent 60%),
-      radial-gradient(46rem 34rem at 104% 6%, rgba(240, 138, 108, 0.16), transparent 60%),
-      radial-gradient(48rem 40rem at 55% 112%, rgba(245, 176, 1, 0.09), transparent 60%),
-      linear-gradient(180deg, #faf7f1 0%, #f4efe5 100%);
+      radial-gradient(56rem 38rem at 6% -8%, rgba(216, 66, 63, var(--glow-a)), transparent 60%),
+      radial-gradient(46rem 34rem at 104% 6%, rgba(240, 138, 108, calc(var(--glow-a) * 1.2)), transparent 60%),
+      radial-gradient(48rem 40rem at 55% 112%, rgba(245, 176, 1, calc(var(--glow-a) * 0.7)), transparent 60%),
+      linear-gradient(180deg, rgb(var(--bg)) 0%, var(--bg-end) 100%);
     background-attachment: fixed;
   }
+  /* trecere lină la comutarea temei */
+  html.theme-switching,
+  html.theme-switching * {
+    transition: background-color 400ms ease, border-color 400ms ease, color 400ms ease, box-shadow 400ms ease !important;
+  }
   ::selection {
-    background: rgba(216, 66, 63, 0.2);
+    background: rgba(216, 66, 63, 0.25);
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(26, 23, 20, 0.2) transparent;
+    scrollbar-color: rgb(var(--ink) / 0.2) transparent;
+  }
+  select option {
+    background: rgb(var(--bg-soft));
   }
   input[type='number']::-webkit-inner-spin-button,
   input[type='number']::-webkit-outer-spin-button {
@@ -59,20 +128,20 @@
 
   /* ---------- Sticlă ---------- */
   .glass {
-    @apply border border-white/60 bg-surface shadow-glass;
+    @apply border border-edge/60 bg-surface shadow-glass;
     -webkit-backdrop-filter: blur(32px) saturate(190%);
     backdrop-filter: blur(32px) saturate(190%);
   }
   /* panou aproape opac pentru elemente plutitoare (modale, meniuri, tooltip-uri) */
   .glass-panel {
-    @apply border border-white bg-panel shadow-glass-lg;
+    @apply border border-edge bg-panel shadow-glass-lg;
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     backdrop-filter: blur(24px) saturate(160%);
   }
   .card {
     @apply glass relative rounded-card transition-[box-shadow,transform] duration-300 ease-spring;
     /* reflexie de sticlă: lumină în colțul de sus, se stinge spre mijloc */
-    background-image: linear-gradient(150deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 60%);
+    background-image: linear-gradient(150deg, var(--sheen) 0%, transparent 60%);
   }
   /* margine luminoasă: albă sus-stânga, se pierde jos-dreapta (ca muchia unei plăci de sticlă) */
   .card::before {
@@ -81,7 +150,7 @@
     inset: -1px;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.15) 40%, rgba(216, 66, 63, 0.12) 75%, rgba(255, 255, 255, 0.5));
+    background: var(--edge-gradient);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -92,18 +161,18 @@
   }
   /* „plăcuță” KPI în interiorul unui card */
   .tile {
-    @apply relative overflow-hidden rounded-tile border border-white/70 bg-white/30 transition-[box-shadow,background-color,transform] duration-300 ease-spring;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 16px -8px rgba(40, 30, 20, 0.12);
+    @apply relative overflow-hidden rounded-tile border border-edge/70 bg-glass/30 transition-[box-shadow,background-color,transform] duration-300 ease-spring;
+    box-shadow: var(--shadow-tile);
   }
   .tile:hover {
-    @apply -translate-y-[3px] bg-white/60 shadow-lift;
+    @apply -translate-y-[3px] bg-glass/60 shadow-lift;
   }
   .tile::after {
     content: '';
     position: absolute;
     inset: 0;
     width: 40%;
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    background: linear-gradient(100deg, transparent, var(--sheen-tile), transparent);
     transform: translateX(-120%);
     pointer-events: none;
   }
@@ -112,9 +181,9 @@
   }
 
   .input {
-    @apply h-10 w-full rounded border border-line bg-white/70 px-3 text-md text-fg placeholder:text-muted-2
+    @apply h-10 w-full rounded border border-line bg-glass/70 px-3 text-md text-fg placeholder:text-muted-2
       transition-[border-color,background-color,box-shadow] duration-200 hover:border-line-strong
-      focus:border-accent/60 focus:bg-white focus:shadow-[0_0_0_3px_rgba(216,66,63,0.14)] focus:outline-none
+      focus:border-accent/60 focus:bg-glass focus:shadow-[0_0_0_3px_rgba(216,66,63,0.14)] focus:outline-none
       sm:h-9 sm:text-base;
   }
   .input-error {
@@ -127,7 +196,7 @@
     @apply h-10 whitespace-nowrap border-b border-line px-3 text-sm leading-none;
   }
   .table-dense tbody tr {
-    @apply transition-colors duration-200 hover:bg-white/70;
+    @apply transition-colors duration-200 hover:bg-glass/70;
   }
   .table-dense tbody tr:last-child td {
     @apply border-b-0;
@@ -163,7 +232,7 @@
     padding-top: env(safe-area-inset-top);
   }
   .hatch {
-    background-image: repeating-linear-gradient(135deg, rgba(26, 23, 20, 0.06) 0 2px, transparent 2px 7px);
+    background-image: repeating-linear-gradient(135deg, rgb(var(--ink) / 0.07) 0 2px, transparent 2px 7px);
   }
 }
 

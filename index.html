@@ -9,6 +9,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Răzvan Tofan · putinALTFEL 3D</title>
+    <script>
+      // tema aleasă se aplică înainte de afișare, ca să nu clipească pagina în crem
+      try {
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#171210');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -30,7 +30,7 @@ export function SlideOver({
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 animate-fade-in bg-ink/25 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 animate-fade-in bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <aside className={`pt-safe relative flex h-full w-full ${width} animate-slide-in flex-col rounded-none border-y-0 border-r-0 glass-panel sm:my-2 sm:mr-2 sm:h-[calc(100%-16px)] sm:rounded-card sm:border-y sm:border-r`}>
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">

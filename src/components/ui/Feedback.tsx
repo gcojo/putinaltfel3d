@@ -32,7 +32,7 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
 export function EmptyState({ title, text, action, icon }: { title: string; text?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-tile border border-white bg-white/70 text-accent shadow-glass">
+      <div className="flex h-16 w-16 items-center justify-center rounded-tile border border-edge bg-glass/70 text-accent shadow-glass">
         {icon ?? <Logo size={38} />}
       </div>
       <p className="text-md text-fg">{title}</p>

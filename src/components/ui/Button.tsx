@@ -5,9 +5,9 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
   primary: 'text-white border border-accent bg-accent shadow-glow hover:bg-accent-soft hover:border-accent-soft hover:-translate-y-px',
-  secondary: 'bg-white/70 text-fg border border-line backdrop-blur-md hover:border-fg hover:bg-white',
-  ghost: 'text-muted hover:text-fg hover:bg-white/70 border border-transparent',
-  danger: 'text-critical border border-critical/30 bg-white/60 hover:border-critical hover:bg-critical hover:text-white',
+  secondary: 'bg-glass/70 text-fg border border-line backdrop-blur-md hover:border-fg hover:bg-glass',
+  ghost: 'text-muted hover:text-fg hover:bg-glass/70 border border-transparent',
+  danger: 'text-critical border border-critical/30 bg-glass/60 hover:border-critical hover:bg-critical hover:text-white',
 };
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -42,7 +42,7 @@ export function IconButton({ label, className = '', children, ...rest }: ButtonH
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded text-muted transition-all duration-200 hover:bg-white/80 hover:text-fg active:scale-90 ${className}`}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded text-muted transition-all duration-200 hover:bg-glass/80 hover:text-fg active:scale-90 ${className}`}
       {...rest}
     >
       {children}
