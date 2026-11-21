@@ -19,7 +19,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'heart-128.png', 'heart-256.png', 'heart-512.png'],
       manifest: {
-        name: 'Răzvan Tofan · putinALTFEL 3D',
+        name: 'putinaltfel3d',
         short_name: 'Print 3D',
         description: 'Panou de administrare pentru printare 3D',
         lang: 'ro',

@@ -35,7 +35,7 @@ export default function LoginPage() {
         <div className="mb-8 flex items-center gap-3">
           <Logo size={72} />
           <div>
-            <div className="font-display text-xl font-normal">Răzvan Tofan</div>
+            <div className="font-display text-xl font-normal">putinaltfel3d</div>
             <div className="text-xs text-muted">Bambu Lab A1</div>
           </div>
         </div>
