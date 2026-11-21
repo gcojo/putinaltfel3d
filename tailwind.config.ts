@@ -39,10 +39,10 @@ export default {
     },
     // Scară tipografică strictă: [mărime, { lineHeight, letterSpacing }]
     fontSize: {
-      micro: ['10px', { lineHeight: '12px', letterSpacing: '0.16em' }], // etichete uppercase
-      xs: ['11px', { lineHeight: '14px' }],
-      sm: ['12px', { lineHeight: '16px' }], // tabele
-      base: ['13px', { lineHeight: '18px' }], // text normal
+      micro: ['11px', { lineHeight: '14px', letterSpacing: '0.16em' }], // etichete uppercase
+      xs: ['12px', { lineHeight: '16px' }],
+      sm: ['13px', { lineHeight: '18px' }], // tabele
+      base: ['14px', { lineHeight: '20px' }], // text normal
       md: ['15px', { lineHeight: '20px' }],
       lg: ['18px', { lineHeight: '24px' }], // titluri secțiuni
       xl: ['34px', { lineHeight: '38px', letterSpacing: '-0.02em' }], // titluri pagină (Playfair)

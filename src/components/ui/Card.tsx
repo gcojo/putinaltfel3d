@@ -9,7 +9,7 @@ export function CardHeader({ title, right, sub }: { title: string; right?: React
     <header className="flex min-h-[52px] items-center justify-between gap-3 border-b border-line px-5 py-3">
       <div className="flex min-w-0 items-center gap-2">
         <h2 className="eyebrow truncate">{title}</h2>
-        {sub && <span className="truncate text-xs text-muted">{sub}</span>}
+        {sub && <span className="truncate text-sm text-muted">{sub}</span>}
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
     </header>
@@ -26,7 +26,7 @@ export function Kpi({
     <div className="flex min-w-0 flex-col gap-2">
       <span className="label">{label}</span>
       <span className={`num font-display ${sz} font-normal ${color} truncate`}>{value}</span>
-      {sub && <span className="num text-xs text-muted">{sub}</span>}
+      {sub && <span className="num text-sm text-muted">{sub}</span>}
     </div>
   );
 }
