@@ -34,7 +34,7 @@ export default {
       ok: v('ok'), // verde – operațional
     },
     fontFamily: {
-      sans: ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
+      sans: ['"Plus Jakarta Sans"', '-apple-system', 'system-ui', 'sans-serif'],
       display: ['"Playfair Display"', 'Georgia', 'serif'],
     },
     // Scară tipografică strictă: [mărime, { lineHeight, letterSpacing }]
