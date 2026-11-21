@@ -17,6 +17,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // înregistrarea se face din src/main.tsx (cu verificare periodică de versiune nouă)
+      injectRegister: false,
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'heart-128.png', 'heart-256.png', 'heart-512.png'],
       manifest: {
         name: 'putinaltfel3d',
@@ -37,6 +39,9 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: `${base}index.html`,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Datele din Supabase nu se pun în cache: aplicația arată mereu date proaspete.
         runtimeCaching: [],
