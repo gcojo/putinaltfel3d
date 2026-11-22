@@ -67,7 +67,22 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     background: rgb(var(--bg));
+  }
+  /* nimic nu are voie să lățească pagina peste ecran (altfel telefonul pornește „zoomat”) */
+  html,
+  body {
+    overflow-x: clip;
+  }
+  /* iOS face zoom automat pe câmpurile sub 16px când primesc focus — pe telefon le ținem la 16px */
+  @media (max-width: 639px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
   body {
     @apply bg-bg text-fg font-sans text-base font-normal antialiased;
