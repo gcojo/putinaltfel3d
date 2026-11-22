@@ -1,5 +1,20 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+
+/** Undă de lumină care pornește din punctul apăsat și se stinge (efect „ripple”). */
+export function spawnRipple(e: PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  const r = el.getBoundingClientRect();
+  const size = Math.max(r.width, r.height) * 2.2;
+  const dot = document.createElement('span');
+  dot.className = 'ripple';
+  dot.setAttribute('aria-hidden', 'true');
+  dot.style.width = dot.style.height = `${size}px`;
+  dot.style.left = `${e.clientX - r.left - size / 2}px`;
+  dot.style.top = `${e.clientY - r.top - size / 2}px`;
+  el.appendChild(dot);
+  dot.addEventListener('animationend', () => dot.remove());
+}
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -18,7 +33,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
-  { variant = 'secondary', size = 'md', loading, icon, children, className = '', disabled, type = 'button', ...rest },
+  { variant = 'secondary', size = 'md', loading, icon, children, className = '', disabled, type = 'button', onPointerDown, ...rest },
   ref,
 ) {
   const sz = size === 'sm' ? 'h-8 px-2.5 text-sm gap-1.5' : 'h-10 px-3.5 text-base gap-2 sm:h-9';
@@ -27,7 +42,11 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       ref={ref}
       type={type}
       disabled={disabled || loading}
-      className={`inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded font-medium transition-all duration-200 ease-spring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 ${sz} ${VARIANTS[variant]} ${className}`}
+      onPointerDown={(e) => {
+        spawnRipple(e);
+        onPointerDown?.(e);
+      }}
+      className={`relative isolate inline-flex shrink-0 select-none overflow-hidden items-center justify-center whitespace-nowrap rounded font-medium transition-all duration-200 ease-spring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 ${sz} ${VARIANTS[variant]} ${className}`}
       {...rest}
     >
       {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : icon}

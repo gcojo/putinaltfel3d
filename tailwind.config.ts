@@ -96,6 +96,35 @@ export default {
           '50%': { transform: 'rotate(-8deg) translateY(-18px)' },
         },
         sheen: { from: { transform: 'translateX(-120%)' }, to: { transform: 'translateX(220%)' } },
+        // iconița din meniu se clatină scurt la hover
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(0) scale(1)' },
+          '25%': { transform: 'rotate(-12deg) scale(1.12)' },
+          '50%': { transform: 'rotate(9deg) scale(1.12)' },
+          '75%': { transform: 'rotate(-4deg) scale(1.06)' },
+        },
+        // iconița activă „sare” când intri pe pagină
+        'bounce-once': {
+          '0%': { transform: 'translateY(0) scale(1)' },
+          '35%': { transform: 'translateY(-5px) scale(1.15)' },
+          '65%': { transform: 'translateY(1px) scale(0.96)' },
+          '100%': { transform: 'translateY(0) scale(1)' },
+        },
+        // cuvintele din titlu urcă din spatele unei măști
+        'reveal-up': { from: { transform: 'translateY(105%) rotate(4deg)', opacity: '0' }, to: { transform: 'none', opacity: '1' } },
+        // inel care se extinde în jurul butonului rapid
+        'ring-pulse': {
+          '0%': { transform: 'scale(1)', opacity: '0.55' },
+          '80%, 100%': { transform: 'scale(1.75)', opacity: '0' },
+        },
+        // bara de timp a notificării se golește
+        countdown: { from: { transform: 'scaleX(1)' }, to: { transform: 'scaleX(0)' } },
+        // notificarea intră din dreapta, cu mic arc
+        'toast-in': {
+          '0%': { opacity: '0', transform: 'translateX(40px) scale(0.94)' },
+          '60%': { opacity: '1', transform: 'translateX(-4px) scale(1.01)' },
+          '100%': { opacity: '1', transform: 'none' },
+        },
       },
       animation: {
         'soft-pulse': 'soft-pulse 2s ease-in-out infinite',
@@ -108,6 +137,12 @@ export default {
         heartbeat: 'heartbeat 2.6s ease-in-out infinite',
         float: 'float 14s ease-in-out infinite',
         sheen: 'sheen 900ms cubic-bezier(0.22, 1, 0.36, 1)',
+        wiggle: 'wiggle 520ms ease-in-out',
+        'bounce-once': 'bounce-once 600ms cubic-bezier(.4,.1,.3,1.4)',
+        'reveal-up': 'reveal-up 700ms cubic-bezier(0.22, 1, 0.36, 1) both',
+        'ring-pulse': 'ring-pulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite',
+        countdown: 'countdown linear forwards',
+        'toast-in': 'toast-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both',
       },
     },
   },

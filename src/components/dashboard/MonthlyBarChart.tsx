@@ -2,6 +2,9 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { num } from '@/lib/format';
 import { useTheme } from '@/hooks/useTheme';
 
+const prefersReducedMotion = () =>
+  typeof window.matchMedia !== 'function' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /** Culorile graficului (SVG nu citește variabilele CSS din atribute). */
 const CHART = {
   light: { grid: 'rgba(26,23,20,0.07)', axis: 'rgba(26,23,20,0.12)', tick: '#6B6660', tick2: '#A39D95' },
@@ -10,7 +13,7 @@ const CHART = {
 
 /**
  * Grafic de bare lunar, o singură serie (monocrom: culoarea e rezervată pentru semnale).
- * Luna curentă e evidențiată în alb, restul în gri.
+ * Luna curentă e evidențiată în alb, restul în gri. Barele „cresc” din axă la afișare.
  */
 export function MonthlyBarChart<T extends { key: string; label: string }>({
   data, dataKey, format, height = 200, unit = '',
@@ -61,7 +64,7 @@ export function MonthlyBarChart<T extends { key: string; label: string }>({
               ) : null
             }
           />
-          <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} maxBarSize={28} isAnimationActive={false}>
+          <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} maxBarSize={28} isAnimationActive={!prefersReducedMotion()} animationBegin={150} animationDuration={900} animationEasing="ease-out">
             {data.map((d) => (
               <Cell key={d.key} fill={d.key === last ? 'url(#bar-current)' : 'url(#bar-rest)'} />
             ))}

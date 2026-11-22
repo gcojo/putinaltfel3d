@@ -48,6 +48,8 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const printing = schedule.items.some((i) => i.isPrinting);
+  // poziția „pastilei” roșii care alunecă sub elementul activ din meniu
+  const activeIndex = NAV.findIndex((n) => (n.end ? location.pathname === n.to : location.pathname.startsWith(n.to)));
   const critical = warnings.filter((w) => w.level === 'critical').length;
 
   useEffect(() => {
@@ -78,6 +80,27 @@ export function AppLayout() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [newOrder, navigate]);
+
+  // lanterna de pe carduri: poziția cursorului, relativ la cardul de sub el
+  useEffect(() => {
+    if (typeof window.matchMedia === 'function' && !window.matchMedia('(hover: hover)').matches) return;
+    let raf = 0;
+    const onMove = (e: PointerEvent) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const card = (e.target as HTMLElement | null)?.closest?.('.card') as HTMLElement | null;
+        if (!card) return;
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+        card.style.setProperty('--my', `${e.clientY - r.top}px`);
+      });
+    };
+    document.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      document.removeEventListener('pointermove', onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   // acoladele contează: în Chromium nou scrollTo() returnează un Promise, iar React
   // l-ar trata drept funcție de curățare și s-ar bloca la schimbarea paginii
@@ -111,7 +134,13 @@ export function AppLayout() {
         <div className={`flex h-[72px] items-center ${expanded ? 'px-4' : 'justify-center'}`}>
           <BrandMark size={48} compact={!expanded} />
         </div>
-        <nav className="flex flex-1 flex-col gap-1.5 px-3 py-2">
+        <nav className="relative flex flex-1 flex-col gap-1.5 px-3 py-2">
+          {/* pastila activă: alunecă (cu mic recul) de la un element la altul */}
+          <span
+            aria-hidden
+            className={`pointer-events-none absolute left-3 right-3 top-2 h-11 rounded-[12px] bg-gradient-to-br from-accent to-accent-soft shadow-glow transition-[transform,opacity] duration-500 ease-bounce ${activeIndex < 0 ? 'opacity-0' : 'opacity-100'}`}
+            style={{ transform: `translateY(${Math.max(0, activeIndex) * 50}px)` }}
+          />
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -119,13 +148,14 @@ export function AppLayout() {
               end={end}
               className={({ isActive }) =>
                 `group relative flex h-11 items-center gap-3 rounded-[12px] px-[12px] transition-all duration-300 ease-spring ${
-                  isActive
-                    ? 'bg-accent text-white shadow-glow'
-                    : 'text-muted hover:translate-x-0.5 hover:bg-glass/80 hover:text-fg'
+                  isActive ? 'text-white' : 'text-muted hover:translate-x-0.5 hover:bg-glass/80 hover:text-fg'
                 }`
               }
             >
-              <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.6} />
+              <Icon
+                className={`h-[18px] w-[18px] shrink-0 group-hover:animate-wiggle ${activeIndex >= 0 && NAV[activeIndex].to === to ? 'animate-bounce-once' : ''}`}
+                strokeWidth={1.6}
+              />
               {expanded && <span className="animate-fade-in truncate text-base">{label}</span>}
               {to === '/' && critical > 0 && <Dot signal="critical" className={expanded ? 'ml-auto' : 'absolute right-2 top-2'} />}
               {to === '/coada' && printing && <Dot signal="ok" pulse className={expanded ? 'ml-auto' : 'absolute right-2 top-2'} />}
@@ -183,11 +213,13 @@ export function AppLayout() {
       {/* Buton rapid „comandă nouă” pe mobil */}
       <button
         onClick={() => newOrder()}
-        className="fixed bottom-[76px] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-white shadow-glow transition-transform duration-200 active:scale-95 md:hidden"
+        className="group fixed bottom-[76px] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-white shadow-glow transition-transform duration-200 active:scale-95 md:hidden"
         style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="Comandă nouă"
       >
-        <Plus className="h-5 w-5" />
+        {/* inel care „respiră” în jurul butonului */}
+        <span aria-hidden className="absolute inset-0 -z-10 animate-ring-pulse rounded-full bg-accent" />
+        <Plus className="h-5 w-5 transition-transform duration-300 ease-bounce group-active:rotate-90" />
       </button>
 
       {/* Navigare jos pe mobil */}
@@ -202,10 +234,19 @@ export function AppLayout() {
                 `relative flex flex-col items-center justify-center gap-1 transition-colors duration-200 ${isActive ? 'text-accent' : 'text-muted'}`
               }
             >
-              <Icon className="h-5 w-5" strokeWidth={1.6} />
-              <span className="text-[10px] leading-none">{label}</span>
-              {to === '/' && critical > 0 && <Dot signal="critical" className="absolute right-[30%] top-2.5" />}
-              {to === '/coada' && printing && <Dot signal="ok" pulse className="absolute right-[30%] top-2.5" />}
+              {({ isActive }) => (
+                <>
+                  <Icon className={`h-5 w-5 transition-transform duration-300 ease-bounce ${isActive ? 'animate-bounce-once' : ''}`} strokeWidth={1.6} />
+                  <span className="text-[10px] leading-none">{label}</span>
+                  {/* liniuța de sus a elementului activ se deschide din centru */}
+                  <i
+                    aria-hidden
+                    className={`absolute left-1/2 top-0 h-[3px] w-8 -translate-x-1/2 rounded-b-full bg-accent transition-transform duration-500 ease-bounce ${isActive ? 'scale-x-100' : 'scale-x-0'}`}
+                  />
+                  {to === '/' && critical > 0 && <Dot signal="critical" className="absolute right-[30%] top-2.5" />}
+                  {to === '/coada' && printing && <Dot signal="ok" pulse className="absolute right-[30%] top-2.5" />}
+                </>
+              )}
             </NavLink>
           ))}
         </div>
@@ -218,8 +259,18 @@ export function PageHeader({ title, sub, actions }: { title: string; sub?: React
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <div className="eyebrow mb-2">Departament printare 3D</div>
-        <h1 className="display text-[28px] leading-[32px] md:text-xl">{title}</h1>
+        <div className="eyebrow eyebrow-draw mb-2">Departament printare 3D</div>
+        {/* fiecare cuvânt urcă din spatele unei măști, unul după altul */}
+        <h1 className="display text-[28px] leading-[32px] md:text-xl" aria-label={title}>
+          {title.split(' ').map((w, i) => (
+            <span key={`${w}-${i}`} aria-hidden className="-mb-1 inline-block overflow-hidden pb-1 align-bottom">
+              <span className="inline-block animate-reveal-up" style={{ animationDelay: `${80 + i * 90}ms` }}>
+                {w}
+              </span>
+              {i < title.split(' ').length - 1 && ' '}
+            </span>
+          ))}
+        </h1>
         {sub && <div className="num mt-1 text-sm text-muted">{sub}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

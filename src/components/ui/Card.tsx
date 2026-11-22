@@ -45,7 +45,7 @@ export function ProgressBar({ value, signal = 'ok', className = '' }: { value: n
   const bg = signal === 'ok' ? 'bg-ok' : signal === 'warning' ? 'bg-warning' : signal === 'critical' ? 'bg-critical' : 'bg-gradient-to-r from-accent to-accent-2';
   return (
     <div className={`h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.07] ${className}`} role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}>
-      <div className={`h-full rounded-full ${bg} transition-[width] duration-500 ease-spring`} style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
+      <div className={`progress-fill h-full origin-left rounded-full ${bg} transition-[width] duration-500 ease-spring`} style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
     </div>
   );
 }

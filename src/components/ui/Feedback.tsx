@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Logo } from './Logo';
 
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-shimmer rounded bg-ink/[0.07] ${className}`} />;
+  return <div className={`skeleton ${className}`} />;
 }
 
 export function SkeletonRows({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {

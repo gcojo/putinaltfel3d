@@ -4,7 +4,7 @@ import { Button } from './Button';
 
 type Kind = 'ok' | 'error' | 'info';
 export interface ToastAction { label: string; onClick: () => void }
-interface ToastItem { id: number; kind: Kind; text: string; action?: ToastAction }
+interface ToastItem { id: number; kind: Kind; text: string; action?: ToastAction; ms: number }
 interface ConfirmOpts { title: string; text?: string; confirmLabel?: string; danger?: boolean }
 
 interface Ctx {
@@ -26,8 +26,9 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const toast = useCallback(
     (text: string, kind: Kind = 'ok', action?: ToastAction) => {
       const id = ++seq.current;
-      setToasts((t) => [...t.slice(-3), { id, kind, text, action }]);
-      setTimeout(() => dismiss(id), action ? 7000 : kind === 'error' ? 6000 : 3000);
+      const ms = action ? 7000 : kind === 'error' ? 6000 : 3000;
+      setToasts((t) => [...t.slice(-3), { id, kind, text, action, ms }]);
+      setTimeout(() => dismiss(id), ms);
     },
     [dismiss],
   );
@@ -65,9 +66,15 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
               <div
                 key={t.id}
                 role="status"
-                className="glass-panel pointer-events-auto flex max-w-sm animate-pop-in items-center gap-2.5 rounded-tile px-4 py-3 text-sm"
+                className="glass-panel pointer-events-auto relative flex max-w-sm animate-toast-in items-center gap-2.5 overflow-hidden rounded-tile px-4 py-3 text-sm"
               >
-                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.kind === 'ok' ? 'bg-ok' : t.kind === 'error' ? 'bg-critical' : 'bg-muted'}`} />
+                <span className={`h-1.5 w-1.5 shrink-0 animate-soft-pulse rounded-full ${t.kind === 'ok' ? 'bg-ok' : t.kind === 'error' ? 'bg-critical' : 'bg-muted'}`} />
+                {/* bara de jos arată cât timp mai stă notificarea pe ecran */}
+                <span
+                  aria-hidden
+                  className={`absolute inset-x-0 bottom-0 h-[2px] origin-left animate-countdown ${t.kind === 'error' ? 'bg-critical/70' : 'bg-accent/70'}`}
+                  style={{ animationDuration: `${t.ms}ms` }}
+                />
                 <span className="flex-1">{t.text}</span>
                 {t.action && (
                   <button
