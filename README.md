@@ -244,7 +244,7 @@ Statusul de plată (plătit / parțial / neplătit) și suma încasată se calcu
 ### Coada și estimările
 
 - În pagina **Coadă**, trage de mânerul ⋮⋮ din stânga ca să reordonezi (merge și pe telefon: ține apăsat puțin, apoi trage).
-- Estimarea folosește **orele de printare pe zi** și **ora de început** din Setări: de ex. 16 h/zi începând la 08:00 înseamnă că imprimanta lucrează între 08:00 și 24:00. Comenzile din coadă consumă din aceste ore, una după alta; o comandă lungă continuă a doua zi. Zilele libere sunt sărite.
+- Imprimanta merge **non-stop, 24/24, în fiecare zi**: comenzile din coadă se printează una după alta, fără pauze sau zile libere (nu mai e nimic de setat).
 - Comanda care se printează acum se estimează de la ora reală de start.
 - **Roșu** = comanda ratează deadline-ul; **portocaliu** = mai puțin de 24 h rezervă; **verde** = în termen.
 - **Cardurile de atenționare** de pe Dashboard propun automat o soluție, de ex. „Mută comanda #12 înaintea #9” — cu un singur buton o aplici.

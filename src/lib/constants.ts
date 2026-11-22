@@ -54,3 +54,11 @@ export const BUSY_QUEUE_DAYS = 4;
 export const OVERDUE_PAYMENT_DAYS = 30;
 
 export const PRINTER_NAME = 'Bambu Lab A1';
+
+/** Imprimanta merge 24/24, în fiecare zi (fără program sau zile libere). */
+export const PRINTER_ALWAYS_ON = {
+  ore_de_printare_pe_zi: 24,
+  ora_inceput_zi: 0,
+  zile_libere: [] as number[],
+  date_libere: [] as string[],
+};

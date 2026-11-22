@@ -154,10 +154,9 @@ export default function QueuePage() {
           <Card>
             <CardHeader
               title="Timeline"
-              sub={`program ${String(settings.ora_inceput_zi).padStart(2, '0')}:00 · ${hours(capacity)}/zi`}
+              sub="non-stop · 24/24"
               right={
                 <span className="hidden items-center gap-3 text-xs text-muted sm:flex">
-                  <span className="flex items-center gap-1.5"><span className="hatch inline-block h-2.5 w-4 border border-line" />pauză</span>
                   <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-px bg-critical" />deadline ratat</span>
                   <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-px bg-warning" />deadline strâns</span>
                 </span>

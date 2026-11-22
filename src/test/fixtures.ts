@@ -40,7 +40,7 @@ export function seedLike(): Order[] {
     order({ id: 9, pozitie_in_coada: 1, durata_print_ore: 10, deadline: d(6) }),
     order({ id: 10, pozitie_in_coada: 2, durata_print_ore: 12, deadline: d(5) }),
     order({ id: 11, pozitie_in_coada: 3, durata_print_ore: 8.5, deadline: d(8), client_id: 2 }),
-    order({ id: 12, pozitie_in_coada: 4, durata_print_ore: 4, deadline: d(1), prioritate: 'urgenta', client_id: 3 }),
+    order({ id: 12, pozitie_in_coada: 4, durata_print_ore: 4, deadline: d(0), prioritate: 'urgenta', client_id: 3 }),
     order({ id: 13, pozitie_in_coada: 5, durata_print_ore: 7, deadline: d(4) }),
     order({ id: 14, status: 'noua', durata_print_ore: 5, deadline: d(10) }),
     // adăugată înainte de proiectare: fără grame și timp

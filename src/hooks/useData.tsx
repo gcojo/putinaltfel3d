@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Client, Order, Payment, Settings } from '@/types/db';
 import * as api from '@/lib/api';
+import { PRINTER_ALWAYS_ON } from '@/lib/constants';
 import { buildSchedule, type Schedule } from '@/lib/schedule';
 import { buildWarnings, type Warning } from '@/lib/warnings';
 import { useNow } from './useNow';
@@ -28,8 +29,8 @@ export const DEFAULT_SETTINGS: Settings = {
   pret_filament_lei_kg: { PLA: 100, PETG: 110, TPU: 170, ABS: 110, ASA: 140, 'PLA-CF': 190, Altul: 120 },
   cost_curent_lei_kwh: 1.3,
   consum_imprimanta_w: 100,
-  ore_de_printare_pe_zi: 16,
-  ora_inceput_zi: 8,
+  ore_de_printare_pe_zi: 24,
+  ora_inceput_zi: 0,
   zile_libere: [],
   date_libere: [],
   adaos_procent: 100,
@@ -75,15 +76,18 @@ export function DataProvider({ children, initial, fixedNow }: { children: ReactN
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [reload]);
 
-  const schedule = useMemo(() => buildSchedule(raw.orders, raw.settings, now), [raw.orders, raw.settings, now]);
+  // imprimanta merge non-stop: programul din baza de date e ignorat
+  const settings = useMemo<Settings>(() => ({ ...raw.settings, ...PRINTER_ALWAYS_ON }), [raw.settings]);
+  const schedule = useMemo(() => buildSchedule(raw.orders, settings, now), [raw.orders, settings, now]);
   const warnings = useMemo(
-    () => buildWarnings(raw.orders, raw.clients, schedule, raw.settings, now),
-    [raw.orders, raw.clients, schedule, raw.settings, now],
+    () => buildWarnings(raw.orders, raw.clients, schedule, settings, now),
+    [raw.orders, raw.clients, schedule, settings, now],
   );
   const clientMap = useMemo(() => new Map(raw.clients.map((c) => [c.id, c])), [raw.clients]);
 
   const value: DataState = {
     ...raw,
+    settings,
     loading,
     error,
     now,
