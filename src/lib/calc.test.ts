@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { amountDue, costBreakdown, electricityCost, orderProfit } from './calc';
+import { amountDue, costBreakdown, orderProfit } from './calc';
 import { hours, lei, num, signedDays } from './format';
 import { buildWarnings } from './warnings';
 import { buildSchedule } from './schedule';
@@ -7,19 +7,15 @@ import { efficiency, kpis, monthlySeries } from './stats';
 import { NOW, clients, payments, seedLike, settings } from '@/test/fixtures';
 
 describe('costuri', () => {
-  it('cost curent = ore × kW × lei/kWh', () => {
-    expect(electricityCost(settings, 10)).toBe(1.3);
-  });
-  it('calculator preț', () => {
+  it('calculator preț (doar material, fără curent)', () => {
     const c = costBreakdown(settings, { material: 'PETG', grame_filament: 250, durata_print_ore: 5, nr_bucati: 2 });
     expect(c.material).toBe(27.5);
-    expect(c.electricity).toBe(0.65);
-    expect(c.total).toBe(28.15);
-    expect(c.suggested).toBe(60); // 56.3 rotunjit în sus la 5
-    expect(c.perPiece).toBe(30);
+    expect(c.total).toBe(27.5);
+    expect(c.suggested).toBe(55); // 55 = 27.5 × 2
+    expect(c.perPiece).toBe(27.5);
   });
   it('profit și rest de plată', () => {
-    expect(orderProfit(settings, { pret_vanzare: 100, cost_material: 20, durata_print_ore: 10 })).toBe(78.7);
+    expect(orderProfit(settings, { pret_vanzare: 100, cost_material: 20 })).toBe(80);
     expect(amountDue({ pret_vanzare: 100, suma_incasata: 30, status: 'livrata' })).toBe(70);
     expect(amountDue({ pret_vanzare: 100, suma_incasata: 0, status: 'anulata' })).toBe(0);
   });

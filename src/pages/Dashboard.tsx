@@ -153,7 +153,7 @@ export default function DashboardPage() {
                 />
               </div>
               <div className="tile p-4 md:p-5">
-                <Kpi label="Profit estimat" value={<Money value={k.profitEstimat} />} sub={`luna asta: ${lei(k.profitLuna)} · preț − material − curent`} />
+                <Kpi label="Profit estimat" value={<Money value={k.profitEstimat} />} sub={`luna asta: ${lei(k.profitLuna)} · preț − material`} />
               </div>
             </div>
           </Card>

@@ -4,7 +4,7 @@ import { Copy, MessageCircle, Pencil, PencilRuler, Phone, Plus, Trash2, X } from
 import { messageTemplates, telLink, waLink } from '@/lib/contact';
 import type { Order, OrderEvent, PaymentMethod } from '@/types/db';
 import * as api from '@/lib/api';
-import { amountDue, electricityCost, orderProfit } from '@/lib/calc';
+import { amountDue, orderProfit } from '@/lib/calc';
 import { PAYMENT_METHODS } from '@/lib/constants';
 import { date, dateTime, grams, hours, lei, relativeDateTime, signedHours, smart, todayYmd } from '@/lib/format';
 import { parseNumber } from '@/lib/parse';
@@ -81,7 +81,6 @@ export function OrderDetailPanel({
   const client = clientById(order.client_id);
   const item = schedule.items.find((i) => i.order.id === order.id);
   const due = amountDue(order);
-  const elec = electricityCost(settings, Number(order.durata_print_ore));
   const profit = orderProfit(settings, order);
   const orderPayments = payments.filter((p) => p.order_id === order.id);
   const next = nextStep(order.status);
@@ -296,7 +295,6 @@ export function OrderDetailPanel({
         <div className="grid grid-cols-3 gap-4">
           <Stat label="Preț" value={lei(Number(order.pret_vanzare))} />
           <Stat label="Cost material" value={lei(Number(order.cost_material), { decimals: true })} />
-          <Stat label="Cost curent" value={lei(elec, { decimals: true })} />
           <Stat label="Profit estimat" value={<span className={profit < 0 ? 'text-critical' : ''}>{lei(profit)}</span>} />
           <Stat label="Încasat" value={lei(Number(order.suma_incasata))} />
           <Stat label="Rest de plată" value={<span className={due > 0 && ['finalizata', 'livrata'].includes(order.status) ? 'text-warning' : ''}>{lei(due)}</span>} />

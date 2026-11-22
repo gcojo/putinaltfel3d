@@ -74,7 +74,8 @@ describe('pagini', () => {
     expect(screen.getByText('Calculator cost')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Filament total'), { target: { value: '250' } });
     fireEvent.change(screen.getByLabelText('Durată print totală'), { target: { value: '5' } });
-    expect(screen.getByText('25.00 lei')).toBeTruthy();
+    expect(screen.getAllByText('25.00 lei').length).toBe(2); // cost material + cost / bucată
+    expect(screen.getAllByText('50 lei').length).toBeGreaterThan(0); // preț sugerat = 25 × 2 (adaos 100%), fără curent
     fireEvent.click(screen.getByText('Adaugă comanda'));
     expect(screen.getByText('Scrie un titlu pentru comandă.')).toBeTruthy();
   });

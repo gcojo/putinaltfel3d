@@ -232,9 +232,8 @@ O comandă fără grame/timp nu poate intra în coadă: dacă încerci, se desch
 
 - **Grame** și **ore** sunt **totale pentru toată comanda** (toate bucățile), exact cum le dă slicer-ul (Bambu Studio) pentru toate plăcile.
 - **Cost material** = grame ÷ 1000 × preț lei/kg al materialului (din Setări). Se calculează automat în baza de date.
-- **Cost curent** = ore × consum (W) ÷ 1000 × preț kWh.
-- **Profit estimat** = preț − material − curent.
-- **Preț sugerat** = cost real × (1 + adaos %), rotunjit în sus la 5 lei. Butonul **Aplică** îl copiază în câmpul de preț.
+- **Profit estimat** = preț − material. Costul curentului nu intră în calcule.
+- **Preț sugerat** = cost material × (1 + adaos %), rotunjit în sus la 5 lei. Butonul **Aplică** îl copiază în câmpul de preț.
 - Când schimbi prețul unui filament în Setări, costul se recalculează automat doar pentru comenzile încă neprintate (Nouă / În coadă).
 
 ### Încasări

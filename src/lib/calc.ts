@@ -1,6 +1,7 @@
 import type { Order, Settings } from '@/types/db';
 
-type CostSettings = Pick<Settings, 'pret_filament_lei_kg' | 'cost_curent_lei_kwh' | 'consum_imprimanta_w' | 'adaos_procent'>;
+// Costul curentului NU intră în calcule (doar materialul).
+type CostSettings = Pick<Settings, 'pret_filament_lei_kg' | 'adaos_procent'>;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -13,14 +14,9 @@ export function materialCost(settings: CostSettings, material: string, grams: nu
   return round2((filamentPrice(settings, material) * (grams || 0)) / 1000);
 }
 
-/** Cost curent = ore × consum (kW) × preț kWh */
-export function electricityCost(settings: CostSettings, hoursPrint: number): number {
-  return round2((hoursPrint || 0) * (Number(settings.consum_imprimanta_w) / 1000) * Number(settings.cost_curent_lei_kwh));
-}
-
 export interface CostBreakdown {
   material: number;
-  electricity: number;
+  /** cost real = material */
   total: number;
   /** preț sugerat = cost × (1 + adaos), rotunjit în sus la 5 lei */
   suggested: number;
@@ -29,20 +25,19 @@ export interface CostBreakdown {
 
 export function costBreakdown(
   settings: CostSettings,
-  input: { material: string; grame_filament: number; durata_print_ore: number; nr_bucati: number },
+  input: { material: string; grame_filament: number; durata_print_ore?: number; nr_bucati: number },
   markupPct = Number(settings.adaos_procent),
 ): CostBreakdown {
   const material = materialCost(settings, input.material, input.grame_filament);
-  const electricity = electricityCost(settings, input.durata_print_ore);
-  const total = round2(material + electricity);
+  const total = material;
   const raw = total * (1 + markupPct / 100);
   const suggested = raw > 0 ? Math.ceil(raw / 5) * 5 : 0;
-  return { material, electricity, total, suggested, perPiece: round2(suggested / Math.max(1, input.nr_bucati || 1)) };
+  return { material, total, suggested, perPiece: round2(suggested / Math.max(1, input.nr_bucati || 1)) };
 }
 
-/** Profit estimat = preț − material (din DB) − curent */
-export function orderProfit(settings: CostSettings, o: Pick<Order, 'pret_vanzare' | 'cost_material' | 'durata_print_ore'>): number {
-  return round2(Number(o.pret_vanzare) - Number(o.cost_material) - electricityCost(settings, Number(o.durata_print_ore)));
+/** Profit estimat = preț − material (din DB) */
+export function orderProfit(_settings: CostSettings, o: Pick<Order, 'pret_vanzare' | 'cost_material'>): number {
+  return round2(Number(o.pret_vanzare) - Number(o.cost_material));
 }
 
 /** Rest de plată (niciodată negativ) */

@@ -492,11 +492,10 @@ export function OrderFormPanel({
               %
             </label>
           </div>
-          <dl className="num grid grid-cols-3 divide-x divide-line text-sm">
+          <dl className="num grid grid-cols-2 divide-x divide-line text-sm">
             {[
-              ['Material', lei(cost.material, { decimals: true })],
-              ['Curent', lei(cost.electricity, { decimals: true })],
-              ['Cost real', lei(cost.total, { decimals: true })],
+              ['Cost material', lei(cost.material, { decimals: true })],
+              ['Cost / bucată', lei(cost.total / Math.max(1, Number(f.nr_bucati) || 1), { decimals: true })],
             ].map(([k, v]) => (
               <div key={k} className="px-4 py-2.5">
                 <dt className="label">{k}</dt>

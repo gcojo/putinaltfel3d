@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useData } from '@/hooks/useData';
 import { efficiency, generalStats, monthlySeries } from '@/lib/stats';
-import { electricityCost } from '@/lib/calc';
 import { hours, lei, num, pct, smart } from '@/lib/format';
 import { PageHeader } from '@/components/layout/AppLayout';
 import { Card, CardHeader, Kpi } from '@/components/ui/Card';
@@ -44,7 +43,7 @@ export default function StatsPage() {
                 <Kpi label="Durată medie / comandă" value={hours(g.avgHours)} sub={`preț mediu ${lei(g.avgPrice)}`} />
               </div>
               <div className="tile p-4 md:p-5">
-                <Kpi label="Ore totale de printare" value={hours(g.totalHours)} sub={`curent ≈ ${lei(electricityCost(settings, g.totalHours))}`} />
+                <Kpi label="Ore totale de printare" value={hours(g.totalHours)} />
               </div>
               <div className="tile p-4 md:p-5">
                 <Kpi label="Material consumat" value={`${smart(g.totalKg, 2)} kg`} sub="comenzi finalizate + livrate" />
@@ -101,7 +100,7 @@ export default function StatsPage() {
           </div>
 
           <Card>
-            <CardHeader title="Cele mai profitabile comenzi" sub="profit = preț − material − curent" />
+            <CardHeader title="Cele mai profitabile comenzi" sub="profit = preț − material" />
             <div className="overflow-x-auto">
               <table className="table-dense num w-full">
                 <thead>

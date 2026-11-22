@@ -3,9 +3,8 @@ import { Plus, X } from 'lucide-react';
 import * as api from '@/lib/api';
 import { useData } from '@/hooks/useData';
 import { useAuth } from '@/hooks/useAuth';
-import { electricityCost } from '@/lib/calc';
 import { WEEKDAYS } from '@/lib/constants';
-import { date, lei } from '@/lib/format';
+import { date } from '@/lib/format';
 import { PageHeader } from '@/components/layout/AppLayout';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -18,8 +17,6 @@ const valid = (s: string) => String(s).trim() !== '' && Number.isFinite(toNum(s)
 
 interface Form {
   prices: { material: string; price: string }[];
-  kwh: string;
-  watt: string;
   hoursPerDay: string;
   startHour: string;
   markup: string;
@@ -40,8 +37,6 @@ export default function SettingsPage() {
     if (loading) return;
     setF({
       prices: Object.entries(settings.pret_filament_lei_kg ?? {}).map(([material, price]) => ({ material, price: String(price) })),
-      kwh: String(settings.cost_curent_lei_kwh),
-      watt: String(settings.consum_imprimanta_w),
       hoursPerDay: String(settings.ore_de_printare_pe_zi),
       startHour: String(settings.ora_inceput_zi),
       markup: String(settings.adaos_procent),
@@ -67,8 +62,6 @@ export default function SettingsPage() {
       names.add(p.material.trim());
       if (!valid(p.price) || toNum(p.price) < 0) errs[`p${i}`] = 'Preț invalid.';
     });
-    if (!valid(f.kwh) || toNum(f.kwh) < 0) errs.kwh = 'Introdu prețul curentului (ex. 1.30).';
-    if (!valid(f.watt) || toNum(f.watt) < 0) errs.watt = 'Introdu consumul în wați.';
     if (!valid(f.hoursPerDay) || toNum(f.hoursPerDay) <= 0 || toNum(f.hoursPerDay) > 24) errs.hoursPerDay = 'Între 1 și 24 de ore.';
     if (!valid(f.startHour) || !Number.isInteger(toNum(f.startHour)) || toNum(f.startHour) < 0 || toNum(f.startHour) > 23) errs.startHour = 'O oră între 0 și 23.';
     if (!valid(f.markup) || toNum(f.markup) < 0) errs.markup = 'Adaos invalid.';
@@ -82,8 +75,9 @@ export default function SettingsPage() {
     try {
       await api.saveSettings({
         pret_filament_lei_kg: Object.fromEntries(f.prices.map((p) => [p.material.trim(), toNum(p.price)])),
-        cost_curent_lei_kwh: toNum(f.kwh),
-        consum_imprimanta_w: toNum(f.watt),
+        // curentul nu mai intră în calcule: păstrăm valorile existente din baza de date
+        cost_curent_lei_kwh: settings.cost_curent_lei_kwh,
+        consum_imprimanta_w: settings.consum_imprimanta_w,
         ore_de_printare_pe_zi: toNum(f.hoursPerDay),
         ora_inceput_zi: toNum(f.startHour),
         adaos_procent: toNum(f.markup),
@@ -99,7 +93,6 @@ export default function SettingsPage() {
     }
   };
 
-  const perHour = valid(f.kwh) && valid(f.watt) ? electricityCost({ cost_curent_lei_kwh: toNum(f.kwh), consum_imprimanta_w: toNum(f.watt), pret_filament_lei_kg: {}, adaos_procent: 0 }, 1) : 0;
   const endRaw = valid(f.startHour) && valid(f.hoursPerDay) ? toNum(f.startHour) + toNum(f.hoursPerDay) : 0;
   const endHour = endRaw === 24 ? 24 : endRaw % 24;
 
@@ -154,15 +147,9 @@ export default function SettingsPage() {
 
         <div className="stagger flex flex-col gap-4">
           <Card>
-            <CardHeader title="Curent & preț" />
+            <CardHeader title="Preț" />
             <div className="grid grid-cols-2 gap-4 p-4">
-              <Field label="Preț curent" error={errors.kwh} hint="lei / kWh">
-                <Input inputMode="decimal" value={f.kwh} onChange={(e) => set('kwh', e.target.value)} invalid={!!errors.kwh} suffix="lei" />
-              </Field>
-              <Field label="Consum imprimantă" error={errors.watt} hint={`≈ ${lei(perHour, { decimals: true })} / oră de print`}>
-                <Input inputMode="decimal" value={f.watt} onChange={(e) => set('watt', e.target.value)} invalid={!!errors.watt} suffix="W" />
-              </Field>
-              <Field label="Adaos implicit" error={errors.markup} hint="peste costul real, pentru prețul sugerat" className="col-span-2">
+              <Field label="Adaos implicit" error={errors.markup} hint="peste costul materialului, pentru prețul sugerat" className="col-span-2">
                 <Input inputMode="decimal" value={f.markup} onChange={(e) => set('markup', e.target.value)} invalid={!!errors.markup} suffix="%" />
               </Field>
             </div>
