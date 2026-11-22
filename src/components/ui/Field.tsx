@@ -20,10 +20,16 @@ export function Field({
   );
 }
 
+/** Pe telefon nu deschidem tastatura singuri: câmpul primește focus doar când îl atingi. */
+const TOUCH = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+const noTouchFocus = (autoFocus?: boolean) => (TOUCH ? false : autoFocus);
+
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean; suffix?: string };
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ invalid, suffix, className = '', ...rest }, ref) {
-  const input = <input ref={ref} className={`input ${invalid ? 'input-error' : ''} ${suffix ? 'pr-10' : ''} ${className}`} {...rest} />;
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ invalid, suffix, className = '', autoFocus, ...rest }, ref) {
+  const input = (
+    <input ref={ref} className={`input ${invalid ? 'input-error' : ''} ${suffix ? 'pr-10' : ''} ${className}`} autoFocus={noTouchFocus(autoFocus)} {...rest} />
+  );
   if (!suffix) return input;
   return (
     <div className="relative">
@@ -48,10 +54,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
-  { className = '', ...rest },
+  { className = '', autoFocus, ...rest },
   ref,
 ) {
-  return <textarea ref={ref} className={`input h-auto min-h-[72px] py-2 ${className}`} {...rest} />;
+  return <textarea ref={ref} className={`input h-auto min-h-[72px] py-2 ${className}`} autoFocus={noTouchFocus(autoFocus)} {...rest} />;
 });
 
 /** Comutator segmentat (ex. Normală / Urgentă). */

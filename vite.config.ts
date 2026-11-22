@@ -36,6 +36,13 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // ține apăsat pe iconița aplicației: scurtături directe
+        shortcuts: [
+          { name: 'Comandă nouă', short_name: 'Comandă nouă', url: `${base}?nou=1`, icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }] },
+          { name: 'Coadă de printare', short_name: 'Coadă', url: `${base}coada`, icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }] },
+          { name: 'Comenzi', short_name: 'Comenzi', url: `${base}comenzi`, icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }] },
+          { name: 'Filament', short_name: 'Filament', url: `${base}filament`, icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }] },
+        ],
       },
       workbox: {
         navigateFallback: `${base}index.html`,

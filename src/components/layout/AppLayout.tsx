@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  BookOpen, ChartColumn, ChevronsLeft, ChevronsRight, Cylinder, Ellipsis, LayoutGrid, ListOrdered, LogOut, Moon, Package, Plus, Settings, Sun, Users,
+  BookOpen, ChartColumn, ChevronsLeft, ChevronsRight, Cylinder, Ellipsis, LayoutGrid, ListOrdered, LogOut, Moon, Package, Plus, RefreshCw, Settings, Sun, Users,
 } from 'lucide-react';
+import { PULL_TRIGGER, usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useAppBadge } from '@/hooks/useAppBadge';
 import { BrandMark } from '@/components/ui/Logo';
 import { Dot } from '@/components/ui/Status';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,7 +42,8 @@ const EXPANDED_KEY = 'sidebar-expanded';
 
 export function AppLayout() {
   const { signOut, session } = useAuth();
-  const { warnings, schedule } = useData();
+  const { warnings, schedule, reload } = useData();
+  const { pull, refreshing } = usePullToRefresh(reload);
   const { newOrder } = useOrderPanel();
   const { isDark, toggle: toggleTheme } = useTheme();
   usePrintNotifications();
@@ -60,6 +63,29 @@ export function AppLayout() {
   // poziția „pastilei” roșii care alunecă sub elementul activ din meniu
   const activeIndex = NAV.findIndex((n) => (n.end ? location.pathname === n.to : location.pathname.startsWith(n.to)));
   const critical = warnings.filter((w) => w.level === 'critical').length;
+
+  // cifra de pe iconiță: câte comenzi au o problemă critică (întârziate, în risc etc.)
+  const badgeCount = (() => {
+    const ids = new Set<number>();
+    let loose = 0;
+    for (const w of warnings) {
+      if (w.level !== 'critical') continue;
+      if (w.orders.length === 0) loose++;
+      w.orders.forEach((o) => ids.add(o.id));
+    }
+    return ids.size + loose;
+  })();
+  useAppBadge(badgeCount);
+
+  // scurtătura „Comandă nouă” de pe iconiță deschide aplicația cu ?nou=1
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('nou') !== '1') return;
+    params.delete('nou');
+    const rest = params.toString();
+    navigate({ pathname: location.pathname, search: rest ? `?${rest}` : '' }, { replace: true });
+    newOrder();
+  }, [location.search, location.pathname, navigate, newOrder]);
 
   useEffect(() => {
     try {
@@ -211,7 +237,31 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1440px] px-4 pb-28 pt-4 md:px-8 md:pb-10 md:pt-7">
+        {/* indicatorul „trage ca să reîmprospătezi” (doar pe telefon) */}
+        {(pull > 0 || refreshing) && (
+          <div
+            aria-live="polite"
+            className="pointer-events-none fixed inset-x-0 z-40 flex justify-center md:hidden"
+            style={{ top: `calc(env(safe-area-inset-top) + ${8 + pull * 0.6}px)` }}
+          >
+            <span
+              className={`glass flex h-10 w-10 items-center justify-center rounded-full ${pull >= PULL_TRIGGER || refreshing ? 'text-accent' : 'text-muted'}`}
+              style={{ opacity: Math.min(1, pull / 40 + (refreshing ? 1 : 0)) }}
+            >
+              <RefreshCw
+                className={`h-[18px] w-[18px] ${refreshing ? 'animate-spin' : ''}`}
+                strokeWidth={1.8}
+                style={refreshing ? undefined : { transform: `rotate(${pull * 3}deg)` }}
+              />
+              <span className="sr-only">{refreshing ? 'Se reîmprospătează' : 'Trage ca să reîmprospătezi'}</span>
+            </span>
+          </div>
+        )}
+
+        <main
+          className="mx-auto w-full max-w-[1440px] px-4 pb-28 pt-4 md:px-8 md:pb-10 md:pt-7"
+          style={pull > 0 ? { transform: `translateY(${pull * 0.5}px)` } : refreshing ? undefined : { transition: 'transform 300ms ease' }}
+        >
           {/* cheia pe rută repornește animația de intrare la fiecare schimbare de pagină */}
           <div key={location.pathname} className="animate-rise">
             <Outlet />

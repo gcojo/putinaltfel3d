@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowDown, ArrowUp, Download, Plus, Search, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Ban, ChevronsRight, Download, Plus, Search, X } from 'lucide-react';
 import type { Order } from '@/types/db';
 import { useData } from '@/hooks/useData';
 import { amountDue } from '@/lib/calc';
@@ -15,7 +15,9 @@ import { Input, Select } from '@/components/ui/Field';
 import { Card } from '@/components/ui/Card';
 import { Dot, PaidSignal, Signal, riskSignal } from '@/components/ui/Status';
 import { EmptyState, ErrorBanner, SkeletonRows } from '@/components/ui/Feedback';
-import { StatusMenu } from '@/components/orders/StatusMenu';
+import { StatusMenu, nextStep } from '@/components/orders/StatusMenu';
+import { SwipeCard } from '@/components/orders/SwipeCard';
+import { useChangeStatus } from '@/components/orders/useOrderActions';
 import { useOrderPanel } from '@/components/orders/OrderPanelProvider';
 
 type SortKey = 'id' | 'titlu' | 'client' | 'status' | 'durata' | 'deadline' | 'pret' | 'rest';
@@ -37,6 +39,7 @@ function DeadlineCell({ order, item }: { order: Order; item?: ScheduledItem }) {
 export default function OrdersPage() {
   const { orders, clients, payments, settings, schedule, loading, error, reload, clientById } = useData();
   const { openOrder, newOrder } = useOrderPanel();
+  const changeStatus = useChangeStatus();
   const [params, setParams] = useSearchParams();
   const focusSearch = !!(useLocation().state as { focusSearch?: boolean } | null)?.focusSearch;
 
@@ -294,8 +297,16 @@ export default function OrdersPage() {
             {rows.map((o) => {
               const item = scheduled.get(o.id);
               const due = amountDue(o);
+              const step = nextStep(o.status);
+              const canCancel = o.status !== 'anulata' && o.status !== 'livrata';
               return (
-                <div key={o.id} role="button" tabIndex={0} onClick={() => openOrder(o.id)} className="card num flex flex-col gap-2 p-3.5 active:bg-surface-2">
+                <SwipeCard
+                  key={o.id}
+                  onTap={() => openOrder(o.id)}
+                  className="num flex flex-col gap-2 p-3.5 active:bg-surface-2"
+                  right={step && { label: step.label, icon: ChevronsRight, tone: 'bg-ok', run: () => changeStatus(o, step.status) }}
+                  left={canCancel ? { label: 'Anulează', icon: Ban, tone: 'bg-critical', run: () => changeStatus(o, 'anulata') } : null}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-xs text-muted">
@@ -319,12 +330,13 @@ export default function OrdersPage() {
                     </span>
                     <DeadlineCell order={o} item={item} />
                   </div>
-                </div>
+                </SwipeCard>
               );
             })}
             <p className="num py-2 text-center text-xs text-muted">
               {rows.length} comenzi · {lei(totalPret)} · rest {lei(totalRest)}
             </p>
+            <p className="pb-2 text-center text-[11px] text-muted-2">Trage un card spre dreapta pentru pasul următor, spre stânga ca să anulezi comanda.</p>
           </div>
         </>
       )}
