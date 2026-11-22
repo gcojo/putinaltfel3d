@@ -76,6 +76,36 @@ describe('pagini', () => {
     expect(screen.getByText('Scrie un titlu pentru comandă.')).toBeTruthy();
   });
 
+  it('Formular comandă: client cu căutare, client nou, șablon din comandă anterioară', () => {
+    renderAt('/comenzi');
+    fireEvent.click(screen.getAllByText('Comandă nouă')[0]);
+    const client = document.getElementById('f-client')!;
+    fireEvent.focus(client);
+    fireEvent.change(client, { target: { value: 'mari' } });
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /Maria Ionescu/ }));
+    expect((client as HTMLInputElement).value).toBe('Maria Ionescu');
+    expect(screen.queryByLabelText('Telefon client nou')).toBeNull();
+
+    fireEvent.change(client, { target: { value: 'Ion Nou' } });
+    expect(screen.getByLabelText('Telefon client nou')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Titlu'), { target: { value: 'comanda 10' } });
+    fireEvent.click(screen.getByText(/Ai mai făcut-o \(#10\)/));
+    expect((screen.getByLabelText('Durată print totală') as HTMLInputElement).value).toBe('12');
+    expect((screen.getByLabelText('Preț vânzare') as HTMLInputElement).value).toBe('50');
+  });
+
+  it('Formular comandă: Escape cu date completate cere confirmare', () => {
+    renderAt('/comenzi');
+    fireEvent.click(screen.getAllByText('Comandă nouă')[0]);
+    fireEvent.change(screen.getByLabelText('Titlu'), { target: { value: 'Ceva' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByText('Renunți la comanda nouă?')).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByText('Renunți la comanda nouă?')).toBeNull();
+    expect((screen.getByLabelText('Titlu') as HTMLInputElement).value).toBe('Ceva');
+  });
+
   it('Coadă: timeline + listă sortabilă + neprogramate', () => {
     renderAt('/coada');
     expect(screen.getByText('Timeline')).toBeTruthy();

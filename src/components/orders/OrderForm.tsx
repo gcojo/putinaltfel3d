@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calculator, ImagePlus, Trash2 } from 'lucide-react';
-import type { Order, OrderInput, OrderStatus, Priority } from '@/types/db';
+import { Calculator, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react';
+import type { Client, Order, OrderInput, OrderStatus, PaymentMethod, Priority } from '@/types/db';
 import * as api from '@/lib/api';
 import { costBreakdown } from '@/lib/calc';
-import { DEFAULT_MATERIALS, PRIORITIES, STATUSES } from '@/lib/constants';
+import { DEFAULT_MATERIALS, PAYMENT_METHODS, PRIORITIES, STATUSES } from '@/lib/constants';
 import { dateTime, deadlineEnd, hours, lei, parseYmd, signedHours, toYmd, todayYmd } from '@/lib/format';
 import { parseDuration, parseNumber } from '@/lib/parse';
 import { estimateIfAppended } from '@/lib/schedule';
@@ -14,10 +14,13 @@ import { Dot } from '@/components/ui/Status';
 import { useFeedback } from '@/components/ui/Toast';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { usePhotoUrl } from './usePhotoUrl';
+import { ClientPicker, matchClient } from './ClientPicker';
 
 interface FormState {
-  client_id: string; // '' | 'new' | id
-  client_nou: string;
+  /** '' = fără client sau client nou (după `client_text`) | id client existent */
+  client_id: string;
+  /** ce scrie în câmpul Client */
+  client_text: string;
   client_tel: string;
   titlu: string;
   descriere: string;
@@ -33,6 +36,9 @@ interface FormState {
   deadline: string;
   note: string;
   poza_url: string | null;
+  /** doar la comandă nouă: bani primiți deja (avans sau tot) */
+  avans: string;
+  avans_metoda: PaymentMethod;
 }
 
 type Errors = Partial<Record<keyof FormState, string>>;
@@ -54,10 +60,14 @@ const addDays = (ymd: string, days: number) => {
   return toYmd(d);
 };
 
-function fromOrder(o?: Partial<Order>): FormState {
+const chip = (active: boolean) =>
+  `rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? 'border-accent bg-accent text-white' : 'border-line text-muted hover:border-fg hover:text-fg'}`;
+
+function fromOrder(o: Partial<Order> | undefined, clients: Client[]): FormState {
+  const client = o?.client_id ? clients.find((c) => c.id === o.client_id) : undefined;
   return {
-    client_id: o?.client_id ? String(o.client_id) : '',
-    client_nou: '',
+    client_id: client ? String(client.id) : '',
+    client_text: client?.nume ?? '',
     client_tel: '',
     titlu: o?.titlu ?? '',
     descriere: o?.descriere ?? '',
@@ -73,21 +83,26 @@ function fromOrder(o?: Partial<Order>): FormState {
     deadline: o?.deadline ?? '',
     note: o?.note ?? '',
     poza_url: o?.poza_url ?? null,
+    avans: '',
+    avans_metoda: 'numerar',
   };
 }
 
 function validate(f: FormState): Errors {
   const e: Errors = {};
   if (!f.titlu.trim()) e.titlu = 'Scrie un titlu pentru comandă.';
-  if (f.client_id === 'new' && !f.client_nou.trim()) e.client_nou = 'Scrie numele clientului nou.';
   if (!isNum(f.grame_filament) || toNum(f.grame_filament) < 0) e.grame_filament = 'Introdu gramele (0 sau mai mult).';
   if (!isHours(f.durata_print_ore) || toHours(f.durata_print_ore) < 0) e.durata_print_ore = 'Introdu durata (ex. 3.5 sau 2h 35m).';
   if (!isNum(f.nr_bucati) || !Number.isInteger(toNum(f.nr_bucati)) || toNum(f.nr_bucati) < 1) e.nr_bucati = 'Minim 1 bucată.';
   if (f.pret_vanzare.trim() !== '' && (!isNum(f.pret_vanzare) || toNum(f.pret_vanzare) < 0)) e.pret_vanzare = 'Preț invalid.';
   if (!f.data_comanda) e.data_comanda = 'Alege data comenzii.';
   if (f.deadline && f.data_comanda && f.deadline < f.data_comanda) e.deadline = 'Deadline-ul nu poate fi înaintea datei comenzii.';
+  if (f.avans.trim() !== '' && (!isNum(f.avans) || toNum(f.avans) < 0)) e.avans = 'Sumă invalidă.';
   return e;
 }
+
+/** Valori unice nenule, în ordinea apariției (comenzile vin cele mai noi primele). */
+const uniq = (list: (string | null)[], max = 200) => [...new Set(list.map((s) => s?.trim()).filter((s): s is string => !!s))].slice(0, max);
 
 export function OrderFormPanel({
   open, order, prefill, onClose, onSaved,
@@ -98,24 +113,35 @@ export function OrderFormPanel({
   onClose: () => void;
   onSaved: (o: Order) => void;
 }) {
-  const { clients, settings, schedule, reload } = useData();
-  const { toast } = useFeedback();
-  const [f, setF] = useState<FormState>(() => fromOrder(order ?? prefill));
+  const { clients, orders, settings, schedule, reload } = useData();
+  const { toast, confirm } = useFeedback();
+  const [f, setF] = useState<FormState>(() => fromOrder(order ?? prefill, clients));
   const [errors, setErrors] = useState<Errors>({});
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<false | 'save' | 'again'>(false);
   const [uploading, setUploading] = useState(false);
   const [markup, setMarkup] = useState(String(settings.adaos_procent));
+  const [showMore, setShowMore] = useState(!!order);
+  const [usedTemplate, setUsedTemplate] = useState<number | null>(null);
   const uploadedRef = useRef<string | null>(null);
+  const initialRef = useRef('');
   const fileRef = useRef<HTMLInputElement>(null);
   const photo = usePhotoUrl(f.poza_url);
 
+  const reset = (state: FormState) => {
+    setF(state);
+    initialRef.current = JSON.stringify(state);
+    setErrors({});
+    setUsedTemplate(null);
+    uploadedRef.current = null;
+  };
+
   useEffect(() => {
     if (open) {
-      setF(fromOrder(order ?? prefill));
-      setErrors({});
+      reset(fromOrder(order ?? prefill, clients));
       setMarkup(String(settings.adaos_procent));
-      uploadedRef.current = null;
+      setShowMore(!!order);
     }
+    // `clients` lipsește intenționat: o reîncărcare a datelor nu trebuie să golească formularul
   }, [open, order, prefill, settings.adaos_procent]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
@@ -129,6 +155,37 @@ export function OrderFormPanel({
     return all.includes(f.material) ? all : [...all, f.material];
   }, [settings.pret_filament_lei_kg, f.material]);
 
+  // sugestii din comenzile anterioare
+  const titles = useMemo(() => uniq(orders.map((o) => o.titlu)), [orders]);
+  const colors = useMemo(() => uniq(orders.map((o) => o.culoare), 50), [orders]);
+
+  // aceeași comandă făcută înainte? -> o poți folosi drept șablon
+  const template = useMemo(() => {
+    if (order) return undefined;
+    const n = f.titlu.trim().toLowerCase();
+    if (n.length < 2) return undefined;
+    return orders.find((o) => o.titlu.trim().toLowerCase() === n && o.status !== 'anulata');
+  }, [orders, f.titlu, order]);
+
+  const applyTemplate = (o: Order) => {
+    setF((s) => {
+      const c = !s.client_text.trim() && o.client_id ? clients.find((x) => x.id === o.client_id) : undefined;
+      return {
+        ...s,
+        material: o.material,
+        culoare: o.culoare ?? '',
+        grame_filament: String(o.grame_filament),
+        durata_print_ore: String(o.durata_print_ore),
+        nr_bucati: String(o.nr_bucati),
+        pret_vanzare: String(o.pret_vanzare),
+        descriere: s.descriere || (o.descriere ?? ''),
+        ...(c ? { client_id: String(c.id), client_text: c.nume } : {}),
+      };
+    });
+    setErrors({});
+    setUsedTemplate(o.id);
+  };
+
   const cost = costBreakdown(
     settings,
     {
@@ -141,6 +198,7 @@ export function OrderFormPanel({
   );
   const price = isNum(f.pret_vanzare) ? toNum(f.pret_vanzare) : 0;
   const profit = price - cost.total;
+  const isNewClient = !f.client_id && f.client_text.trim() !== '';
 
   // Estimare: când ar fi gata dacă intră acum la finalul cozii (sau poziția actuală)
   const estimate = useMemo(() => {
@@ -170,24 +228,45 @@ export function OrderFormPanel({
   };
 
   const cancel = async () => {
+    if (saving) return;
+    const dirty = JSON.stringify(f) !== initialRef.current || !!uploadedRef.current;
+    if (
+      dirty &&
+      !(await confirm({
+        title: order ? 'Renunți la modificări?' : 'Renunți la comanda nouă?',
+        text: 'Ce ai completat în formular se pierde.',
+        confirmLabel: 'Da, renunță',
+        danger: true,
+      }))
+    )
+      return;
     if (uploadedRef.current) await api.removePhoto(uploadedRef.current).catch(() => undefined);
     onClose();
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /** `again` = salvează și golește formularul pentru următoarea comandă. */
+  const save = async (again: boolean) => {
+    if (saving || uploading) return;
     const errs = validate(f);
     setErrors(errs);
     if (Object.values(errs).some(Boolean)) {
+      if (errs.data_comanda) setShowMore(true);
       toast('Verifică câmpurile marcate cu roșu.', 'error');
       return;
     }
-    setSaving(true);
+    setSaving(again ? 'again' : 'save');
     try {
-      let clientId: number | null = f.client_id && f.client_id !== 'new' ? Number(f.client_id) : null;
-      if (f.client_id === 'new') {
-        const c = await api.saveClient({ nume: f.client_nou.trim(), telefon: f.client_tel.trim() || null, email: null, oras: null, note: null });
-        clientId = c.id;
+      const clientName = f.client_text.trim();
+      let clientId: number | null = f.client_id ? Number(f.client_id) : null;
+      if (!clientId && clientName) {
+        const existing = matchClient(clients, clientName);
+        if (existing) clientId = existing.id;
+        else {
+          const c = await api.saveClient({ nume: clientName, telefon: f.client_tel.trim() || null, email: null, oras: null, note: null });
+          clientId = c.id;
+          // dacă salvarea comenzii eșuează, la reîncercare nu mai creăm clientul încă o dată
+          setF((s) => ({ ...s, client_id: String(c.id) }));
+        }
       }
       const input: OrderInput = {
         client_id: clientId,
@@ -211,9 +290,29 @@ export function OrderFormPanel({
       if (order?.poza_url && order.poza_url !== f.poza_url) await api.removePhoto(order.poza_url).catch(() => undefined);
       if (uploadedRef.current && uploadedRef.current !== f.poza_url) await api.removePhoto(uploadedRef.current).catch(() => undefined);
       uploadedRef.current = null;
-      toast(order ? `Comanda #${saved.id} a fost actualizată.` : `Comanda #${saved.id} a fost adăugată.`);
+
+      let msg = order ? `Comanda #${saved.id} a fost actualizată.` : `Comanda #${saved.id} a fost adăugată.`;
+      const avans = !order && f.avans.trim() ? toNum(f.avans) : 0;
+      if (avans > 0) {
+        try {
+          await api.addPayment({ order_id: saved.id, suma: avans, data: todayYmd(), metoda: f.avans_metoda, note: null });
+          msg = `Comanda #${saved.id} a fost adăugată, cu ${lei(avans)} încasați.`;
+        } catch (e) {
+          toast(`Comanda #${saved.id} a fost salvată, dar încasarea nu: ${api.friendlyError(e)}`, 'error');
+        }
+      }
+      toast(again ? `${msg} Poți completa următoarea.` : msg);
       await reload();
-      onSaved(saved);
+      if (again) {
+        // păstrăm clientul și data: de obicei urmează altă comandă de la același client
+        reset({
+          ...fromOrder(undefined, []),
+          client_id: clientId ? String(clientId) : '',
+          client_text: clientName,
+          data_comanda: f.data_comanda,
+        });
+        document.getElementById('f-titlu')?.focus();
+      } else onSaved(saved);
     } catch (err) {
       toast(api.friendlyError(err), 'error');
     } finally {
@@ -226,58 +325,112 @@ export function OrderFormPanel({
       open={open}
       onClose={cancel}
       title={order ? `Editează comanda #${order.id}` : 'Comandă nouă'}
-      subtitle={order ? order.titlu : 'Completează detaliile; costul se calculează automat.'}
+      subtitle={order ? order.titlu : 'Doar titlul, gramele și durata sunt obligatorii.'}
       width="max-w-[560px]"
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={cancel}>
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="ghost" onClick={cancel} className="mr-auto sm:mr-0">
             Renunță
           </Button>
-          <Button variant="primary" type="submit" form="order-form" loading={saving} disabled={uploading}>
+          {!order && (
+            <Button onClick={() => save(true)} loading={saving === 'again'} disabled={uploading || !!saving} title="Salvează și deschide un formular gol pentru următoarea comandă">
+              <span className="hidden sm:inline">Adaugă și&nbsp;</span>încă una
+            </Button>
+          )}
+          <Button variant="primary" type="submit" form="order-form" loading={saving === 'save'} disabled={uploading || !!saving} title="Ctrl + Enter">
             {order ? 'Salvează' : 'Adaugă comanda'}
           </Button>
         </div>
       }
     >
-      <form id="order-form" onSubmit={submit} noValidate className="flex flex-col gap-5 px-5 py-5">
+      <form
+        id="order-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save(false);
+        }}
+        onKeyDown={(e) => {
+          // Ctrl/Cmd + Enter salvează de oriunde din formular
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            save(false);
+          }
+        }}
+        noValidate
+        className="flex flex-col gap-5 px-5 py-5"
+      >
         <Field label="Titlu" error={errors.titlu} htmlFor="f-titlu">
-          <Input id="f-titlu" value={f.titlu} onChange={(e) => set('titlu', e.target.value)} invalid={!!errors.titlu} placeholder="ex. Suport telefon birou" autoFocus={!order} />
+          <Input
+            id="f-titlu"
+            value={f.titlu}
+            onChange={(e) => set('titlu', e.target.value)}
+            invalid={!!errors.titlu}
+            placeholder="ex. Suport telefon birou"
+            autoFocus={!order}
+            list="f-titluri"
+            autoComplete="off"
+          />
+          <datalist id="f-titluri">
+            {titles.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+          {template && usedTemplate !== template.id && (
+            <button
+              type="button"
+              onClick={() => applyTemplate(template)}
+              className="flex items-center gap-2 self-start rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs text-fg transition-colors hover:bg-accent/20"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              Ai mai făcut-o (#{template.id}) · completează gramele, durata și prețul
+            </button>
+          )}
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Client" htmlFor="f-client">
-            <Select id="f-client" value={f.client_id} onChange={(e) => set('client_id', e.target.value)}>
-              <option value="">— fără client —</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nume}
-                </option>
-              ))}
-              <option value="new">+ Client nou…</option>
-            </Select>
+          <Field label="Client" htmlFor="f-client" hint={isNewClient ? 'Client nou · se adaugă automat la salvare' : undefined}>
+            <ClientPicker
+              id="f-client"
+              clients={clients}
+              text={f.client_text}
+              onChange={(text, c) => setF((s) => ({ ...s, client_text: text, client_id: c ? String(c.id) : '' }))}
+            />
           </Field>
-          {f.client_id === 'new' && (
-            <Field label="Nume client nou" error={errors.client_nou} htmlFor="f-client-nou">
-              <Input id="f-client-nou" value={f.client_nou} onChange={(e) => set('client_nou', e.target.value)} invalid={!!errors.client_nou} placeholder="Nume și prenume" />
-            </Field>
-          )}
-          {f.client_id === 'new' && (
-            <Field label="Telefon client" hint="Opțional · pentru mesaje rapide pe WhatsApp" htmlFor="f-client-tel" className="sm:col-start-2">
+          {isNewClient && (
+            <Field label="Telefon client nou" hint="Opțional · pentru mesaje pe WhatsApp" htmlFor="f-client-tel">
               <Input id="f-client-tel" type="tel" inputMode="tel" value={f.client_tel} onChange={(e) => set('client_tel', e.target.value)} placeholder="07xx xxx xxx" />
             </Field>
           )}
         </div>
 
+        <Field label="Material">
+          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Material">
+            {materials.map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="radio"
+                aria-checked={f.material === m}
+                onClick={() => set('material', m)}
+                className={`h-9 rounded-[10px] border px-3 text-sm transition-colors ${f.material === m ? 'border-accent bg-accent text-white shadow-glow' : 'border-line text-muted hover:border-fg hover:text-fg'}`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </Field>
+
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Material" htmlFor="f-material">
-            <Select id="f-material" value={f.material} onChange={(e) => set('material', e.target.value)}>
-              {materials.map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </Select>
-          </Field>
           <Field label="Culoare" htmlFor="f-culoare">
-            <Input id="f-culoare" value={f.culoare} onChange={(e) => set('culoare', e.target.value)} placeholder="ex. Negru mat" />
+            <Input id="f-culoare" value={f.culoare} onChange={(e) => set('culoare', e.target.value)} placeholder="ex. Negru mat" list="f-culori" autoComplete="off" />
+            <datalist id="f-culori">
+              {colors.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </Field>
+          <Field label="Nr. bucăți" error={errors.nr_bucati} htmlFor="f-buc">
+            <Input id="f-buc" inputMode="numeric" value={f.nr_bucati} onChange={(e) => set('nr_bucati', e.target.value)} invalid={!!errors.nr_bucati} />
           </Field>
           <Field label="Filament total" error={errors.grame_filament} htmlFor="f-grame">
             <Input id="f-grame" inputMode="decimal" value={f.grame_filament} onChange={(e) => set('grame_filament', e.target.value)} invalid={!!errors.grame_filament} suffix="g" placeholder="0" />
@@ -289,12 +442,6 @@ export function OrderFormPanel({
             htmlFor="f-ore"
           >
             <Input id="f-ore" value={f.durata_print_ore} onChange={(e) => set('durata_print_ore', e.target.value)} invalid={!!errors.durata_print_ore} suffix="h" placeholder="3.5" />
-          </Field>
-          <Field label="Nr. bucăți" error={errors.nr_bucati} htmlFor="f-buc">
-            <Input id="f-buc" inputMode="numeric" value={f.nr_bucati} onChange={(e) => set('nr_bucati', e.target.value)} invalid={!!errors.nr_bucati} />
-          </Field>
-          <Field label="Preț vânzare" error={errors.pret_vanzare} htmlFor="f-pret">
-            <Input id="f-pret" inputMode="decimal" value={f.pret_vanzare} onChange={(e) => set('pret_vanzare', e.target.value)} invalid={!!errors.pret_vanzare} suffix="lei" placeholder={cost.suggested ? String(cost.suggested) : '0'} />
           </Field>
         </div>
 
@@ -351,20 +498,29 @@ export function OrderFormPanel({
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Status" htmlFor="f-status">
-            <Select id="f-status" value={f.status} onChange={(e) => set('status', e.target.value as OrderStatus)}>
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </Select>
+          <Field label="Preț vânzare" error={errors.pret_vanzare} htmlFor="f-pret" hint={f.pret_vanzare.trim() === '' && cost.suggested ? 'Gol = 0 lei · apasă „Aplică” pentru prețul sugerat' : undefined}>
+            <Input id="f-pret" inputMode="decimal" value={f.pret_vanzare} onChange={(e) => set('pret_vanzare', e.target.value)} invalid={!!errors.pret_vanzare} suffix="lei" placeholder={cost.suggested ? String(cost.suggested) : '0'} />
           </Field>
+          {!order && (
+            <Field label="Încasat acum" error={errors.avans} htmlFor="f-avans" hint="Opțional · avans sau tot">
+              <Input id="f-avans" inputMode="decimal" value={f.avans} onChange={(e) => set('avans', e.target.value)} invalid={!!errors.avans} suffix="lei" placeholder="0" />
+              <div className="flex flex-wrap gap-1.5">
+                {price > 0 && (
+                  <button type="button" onClick={() => set('avans', String(price))} className={chip(f.avans === String(price))}>
+                    tot · {lei(price)}
+                  </button>
+                )}
+                {f.avans.trim() !== '' &&
+                  PAYMENT_METHODS.slice(0, 3).map((m) => (
+                    <button key={m.value} type="button" onClick={() => set('avans_metoda', m.value)} className={chip(f.avans_metoda === m.value)}>
+                      {m.label}
+                    </button>
+                  ))}
+              </div>
+            </Field>
+          )}
           <Field label="Prioritate">
             <Segmented value={f.prioritate} onChange={(v) => set('prioritate', v)} options={PRIORITIES} />
-          </Field>
-          <Field label="Data comenzii" error={errors.data_comanda} htmlFor="f-data">
-            <Input id="f-data" type="date" value={f.data_comanda} onChange={(e) => set('data_comanda', e.target.value)} invalid={!!errors.data_comanda} />
           </Field>
           <Field label="Deadline" error={errors.deadline} htmlFor="f-deadline">
             <Input id="f-deadline" type="date" value={f.deadline} onChange={(e) => set('deadline', e.target.value)} invalid={!!errors.deadline} />
@@ -372,12 +528,7 @@ export function OrderFormPanel({
               {DEADLINE_CHIPS.map((c) => {
                 const v = addDays(f.data_comanda, c.days);
                 return (
-                  <button
-                    key={c.days}
-                    type="button"
-                    onClick={() => set('deadline', v)}
-                    className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${f.deadline === v ? 'border-accent bg-accent text-white' : 'border-line text-muted hover:border-fg hover:text-fg'}`}
-                  >
+                  <button key={c.days} type="button" onClick={() => set('deadline', v)} className={chip(f.deadline === v)}>
                     {c.label}
                   </button>
                 );
@@ -410,33 +561,63 @@ export function OrderFormPanel({
           </div>
         )}
 
-        <Field label="Descriere" htmlFor="f-desc">
-          <Textarea id="f-desc" value={f.descriere} onChange={(e) => set('descriere', e.target.value)} rows={2} placeholder="Dimensiuni, fișier, detalii…" />
-        </Field>
-        <Field label="Note interne" htmlFor="f-note">
-          <Textarea id="f-note" value={f.note} onChange={(e) => set('note', e.target.value)} rows={2} />
-        </Field>
+        {/* Câmpurile folosite mai rar stau ascunse la comenzile noi */}
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          aria-expanded={showMore}
+          className="-my-1 flex items-center gap-2 self-start text-sm text-muted hover:text-fg"
+        >
+          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showMore ? 'rotate-180' : ''}`} />
+          {showMore ? 'Mai puține detalii' : 'Mai multe detalii · status, dată, descriere, note, poză'}
+        </button>
 
-        <Field label="Poză">
-          <div className="flex items-center gap-3">
-            {photo ? (
-              <img src={photo} alt="" className="h-20 w-20 rounded border border-line object-cover" />
-            ) : (
-              <div className="hatch h-20 w-20 rounded border border-line" />
-            )}
-            <div className="flex flex-col gap-2">
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-              <Button size="sm" icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => fileRef.current?.click()} loading={uploading}>
-                {f.poza_url ? 'Schimbă poza' : 'Adaugă poză'}
-              </Button>
-              {f.poza_url && (
-                <Button size="sm" variant="ghost" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => set('poza_url', null)}>
-                  Elimină
-                </Button>
-              )}
+        {showMore && (
+          <div className="flex animate-fade-in flex-col gap-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Status" htmlFor="f-status">
+                <Select id="f-status" value={f.status} onChange={(e) => set('status', e.target.value as OrderStatus)}>
+                  {STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Data comenzii" error={errors.data_comanda} htmlFor="f-data">
+                <Input id="f-data" type="date" value={f.data_comanda} onChange={(e) => set('data_comanda', e.target.value)} invalid={!!errors.data_comanda} />
+              </Field>
             </div>
+
+            <Field label="Descriere" htmlFor="f-desc">
+              <Textarea id="f-desc" value={f.descriere} onChange={(e) => set('descriere', e.target.value)} rows={2} placeholder="Dimensiuni, fișier, detalii…" />
+            </Field>
+            <Field label="Note interne" htmlFor="f-note">
+              <Textarea id="f-note" value={f.note} onChange={(e) => set('note', e.target.value)} rows={2} />
+            </Field>
+
+            <Field label="Poză">
+              <div className="flex items-center gap-3">
+                {photo ? (
+                  <img src={photo} alt="" className="h-20 w-20 rounded border border-line object-cover" />
+                ) : (
+                  <div className="hatch h-20 w-20 rounded border border-line" />
+                )}
+                <div className="flex flex-col gap-2">
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
+                  <Button size="sm" icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => fileRef.current?.click()} loading={uploading}>
+                    {f.poza_url ? 'Schimbă poza' : 'Adaugă poză'}
+                  </Button>
+                  {f.poza_url && (
+                    <Button size="sm" variant="ghost" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => set('poza_url', null)}>
+                      Elimină
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Field>
           </div>
-        </Field>
+        )}
       </form>
     </SlideOver>
   );

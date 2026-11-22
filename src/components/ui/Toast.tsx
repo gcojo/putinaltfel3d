@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from './Button';
 
@@ -34,10 +34,26 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 
   const confirm = useCallback((opts: ConfirmOpts) => new Promise<boolean>((resolve) => setDialog({ ...opts, resolve })), []);
 
-  const close = (v: boolean) => {
-    dialog?.resolve(v);
-    setDialog(null);
-  };
+  const close = useCallback(
+    (v: boolean) => {
+      dialog?.resolve(v);
+      setDialog(null);
+    },
+    [dialog],
+  );
+
+  // Escape = Renunță
+  useEffect(() => {
+    if (!dialog) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [dialog, close]);
 
   return (
     <FeedbackContext.Provider value={{ toast, confirm }}>

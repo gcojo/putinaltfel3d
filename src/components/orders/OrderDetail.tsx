@@ -7,6 +7,7 @@ import * as api from '@/lib/api';
 import { amountDue, electricityCost, orderProfit } from '@/lib/calc';
 import { PAYMENT_METHODS } from '@/lib/constants';
 import { date, dateTime, grams, hours, lei, relativeDateTime, signedHours, smart, todayYmd } from '@/lib/format';
+import { parseNumber } from '@/lib/parse';
 import { useData } from '@/hooks/useData';
 import { Button, IconButton } from '@/components/ui/Button';
 import { ProgressBar, Stat } from '@/components/ui/Card';
@@ -306,7 +307,7 @@ export function OrderDetailPanel({
                 className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  addPayment(Number(pay.suma.replace(',', '.')));
+                  addPayment(parseNumber(pay.suma));
                 }}
               >
                 <Input inputMode="decimal" placeholder="Sumă" suffix="lei" value={pay.suma} onChange={(e) => setPay({ ...pay, suma: e.target.value })} autoFocus aria-label="Sumă" />

@@ -17,7 +17,12 @@ export function SlideOver({
 }) {
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      // Escape închide panoul doar dacă nu e deschis deasupra un dialog de confirmare / o listă
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (document.querySelector('[role="alertdialog"], [role="menu"]')) return;
+      onClose();
+    };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
