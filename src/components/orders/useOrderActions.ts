@@ -4,14 +4,22 @@ import * as api from '@/lib/api';
 import { STATUS_MAP } from '@/lib/constants';
 import { useData } from '@/hooks/useData';
 import { useFeedback } from '@/components/ui/Toast';
+import { missingPrintInfo } from '@/lib/design';
+import { useOrderPanelOptional } from './orderPanelContext';
 
 /** Schimbare de status cu actualizare optimistă + confirmări unde e cazul. */
 export function useChangeStatus() {
   const { patchOrders, reload, orders } = useData();
   const { toast, confirm } = useFeedback();
+  const panel = useOrderPanelOptional();
 
   return useCallback(
     async (order: Order, status: OrderStatus) => {
+      // fără grame/timp comanda nu poate fi programată: întâi datele de print (după proiectare)
+      if ((status === 'in_coada' || status === 'se_printeaza') && missingPrintInfo(order) && panel) {
+        panel.editPrintInfo(order, status);
+        return;
+      }
       if (status === 'anulata') {
         const ok = await confirm({ title: `Anulezi comanda #${order.id}?`, text: 'Comanda iese din coadă. O poți reactiva oricând.', confirmLabel: 'Anulează comanda', danger: true });
         if (!ok) return;
@@ -62,6 +70,6 @@ export function useChangeStatus() {
         await reload();
       }
     },
-    [patchOrders, reload, orders, toast, confirm],
+    [patchOrders, reload, orders, toast, confirm, panel],
   );
 }

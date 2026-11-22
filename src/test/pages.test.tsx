@@ -68,6 +68,9 @@ describe('pagini', () => {
   it('Formular comandă: validare în română + calculator', () => {
     renderAt('/comenzi');
     fireEvent.click(screen.getAllByText('Comandă nouă')[0]);
+    // comanda nouă nu cere date de print: le adaugi după proiectare
+    expect(screen.queryByText('Calculator cost')).toBeNull();
+    fireEvent.click(screen.getByText('Am deja datele'));
     expect(screen.getByText('Calculator cost')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Filament total'), { target: { value: '250' } });
     fireEvent.change(screen.getByLabelText('Durată print totală'), { target: { value: '5' } });
@@ -93,6 +96,29 @@ describe('pagini', () => {
     fireEvent.click(screen.getByText(/Ai mai făcut-o \(#10\)/));
     expect((screen.getByLabelText('Durată print totală') as HTMLInputElement).value).toBe('12');
     expect((screen.getByLabelText('Preț vânzare') as HTMLInputElement).value).toBe('50');
+  });
+
+  it('De proiectat: card pe Dashboard, atenționare, panou cu gramele și timpul', () => {
+    renderAt('/');
+    expect(screen.getAllByText('De proiectat').length).toBeGreaterThan(0);
+    expect(screen.getByText('Comanda #15 nu e proiectată încă')).toBeTruthy();
+    fireEvent.click(screen.getByText('Adaugă datele'));
+    expect(screen.getByText('Date de print')).toBeTruthy();
+    fireEvent.click(screen.getByText('O singură bucată'));
+    fireEvent.change(screen.getByLabelText('Filament / bucată'), { target: { value: '40' } });
+    fireEvent.change(screen.getByLabelText('Durată / bucată'), { target: { value: '1h 30m' } });
+    expect(screen.getByText('total 120 g')).toBeTruthy();
+    expect(screen.getByText(/= 1.5 h · total 4.5 h/)).toBeTruthy();
+    expect(screen.getByText('Pune comanda în coadă după salvare')).toBeTruthy();
+    expect(screen.getByText(/Gol = prețul sugerat/)).toBeTruthy();
+  });
+
+  it('De proiectat: filtru în Comenzi și buton în panoul comenzii', () => {
+    renderAt('/comenzi?status=proiectat');
+    const table = screen.getByRole('table');
+    expect(within(table).getAllByRole('row').length).toBe(3); // antet + 1 rând + total
+    fireEvent.click(within(table).getByText('Figurină dragon'));
+    expect(screen.getAllByText('Adaugă gramele și timpul').length).toBe(2);
   });
 
   it('Formular comandă: Escape cu date completate cere confirmare', () => {

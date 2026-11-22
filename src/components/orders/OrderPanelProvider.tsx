@@ -1,32 +1,28 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { Order } from '@/types/db';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import type { Order, OrderStatus } from '@/types/db';
 import { OrderDetailPanel } from './OrderDetail';
 import { OrderFormPanel } from './OrderForm';
+import { PrintInfoPanel } from './PrintInfoPanel';
+import { OrderPanelContext } from './orderPanelContext';
 
-interface Ctx {
-  /** deschide panoul lateral de detaliu */
-  openOrder: (id: number) => void;
-  /** formular comandă nouă (opțional precompletat) */
-  newOrder: (prefill?: Partial<Order>) => void;
-  editOrder: (order: Order) => void;
-}
-
-const OrderPanelContext = createContext<Ctx | null>(null);
+export { useOrderPanel } from './orderPanelContext';
 
 /** Panourile de comandă sunt globale: pot fi deschise din orice pagină fără a o părăsi. */
 export function OrderPanelProvider({ children }: { children: ReactNode }) {
   const [detailId, setDetailId] = useState<number | null>(null);
   const [form, setForm] = useState<{ open: boolean; order?: Order; prefill?: Partial<Order> }>({ open: false });
+  const [print, setPrint] = useState<{ order: Order; thenStatus?: OrderStatus } | null>(null);
 
   const openOrder = useCallback((id: number) => setDetailId(id), []);
   const newOrder = useCallback((prefill?: Partial<Order>) => setForm({ open: true, prefill }), []);
   const editOrder = useCallback((order: Order) => setForm({ open: true, order }), []);
-  const value = useMemo(() => ({ openOrder, newOrder, editOrder }), [openOrder, newOrder, editOrder]);
+  const editPrintInfo = useCallback((order: Order, thenStatus?: OrderStatus) => setPrint({ order, thenStatus }), []);
+  const value = useMemo(() => ({ openOrder, newOrder, editOrder, editPrintInfo }), [openOrder, newOrder, editOrder, editPrintInfo]);
 
   return (
     <OrderPanelContext.Provider value={value}>
       {children}
-      {!form.open && <OrderDetailPanel orderId={detailId} onClose={() => setDetailId(null)} onEdit={editOrder} onDuplicate={newOrder} />}
+      {!form.open && !print && <OrderDetailPanel orderId={detailId} onClose={() => setDetailId(null)} onEdit={editOrder} onDuplicate={newOrder} />}
       <OrderFormPanel
         open={form.open}
         order={form.order}
@@ -37,12 +33,12 @@ export function OrderPanelProvider({ children }: { children: ReactNode }) {
           setDetailId(o.id);
         }}
       />
+      <PrintInfoPanel
+        open={!!print}
+        order={print?.order}
+        thenStatus={print?.thenStatus}
+        onClose={() => setPrint(null)}
+      />
     </OrderPanelContext.Provider>
   );
-}
-
-export function useOrderPanel() {
-  const ctx = useContext(OrderPanelContext);
-  if (!ctx) throw new Error('useOrderPanel în afara OrderPanelProvider');
-  return ctx;
 }

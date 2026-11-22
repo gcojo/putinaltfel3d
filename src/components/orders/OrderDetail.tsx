@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, MessageCircle, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
+import { Copy, MessageCircle, Pencil, PencilRuler, Phone, Plus, Trash2, X } from 'lucide-react';
 import { messageTemplates, telLink, waLink } from '@/lib/contact';
 import type { Order, OrderEvent, PaymentMethod } from '@/types/db';
 import * as api from '@/lib/api';
@@ -19,6 +19,8 @@ import { useFeedback } from '@/components/ui/Toast';
 import { StatusMenu, nextStep } from './StatusMenu';
 import { useChangeStatus } from './useOrderActions';
 import { usePhotoUrl } from './usePhotoUrl';
+import { useOrderPanel } from './orderPanelContext';
+import { missingPrintInfo, needsDesign } from '@/lib/design';
 
 function Section({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
@@ -44,7 +46,8 @@ export function OrderDetailPanel({
   const { orders, payments, settings, schedule, clientById, reload, now } = useData();
   const { toast, confirm } = useFeedback();
   const changeStatus = useChangeStatus();
-  const order = orders.find((o) => o.id === orderId) ?? null;
+  const { editPrintInfo } = useOrderPanel();
+  const order =orders.find((o) => o.id === orderId) ?? null;
   const photo = usePhotoUrl(order?.poza_url);
   const [events, setEvents] = useState<OrderEvent[] | null>(null);
   const [payOpen, setPayOpen] = useState(false);
@@ -82,6 +85,8 @@ export function OrderDetailPanel({
   const profit = orderProfit(settings, order);
   const orderPayments = payments.filter((p) => p.order_id === order.id);
   const next = nextStep(order.status);
+  const noInfo = missingPrintInfo(order);
+  const design = needsDesign(order);
   const wa = (text: string) => waLink(client?.telefon, text);
   const tel = telLink(client?.telefon);
   const templates = client?.telefon ? messageTemplates(order, client.nume) : [];
@@ -171,7 +176,11 @@ export function OrderDetailPanel({
       }
       footer={
         <div className="flex items-center gap-2">
-          {next && order.status !== 'anulata' && (
+          {design ? (
+            <Button variant="primary" className="flex-1 sm:flex-none" icon={<PencilRuler className="h-3.5 w-3.5" />} onClick={() => editPrintInfo(order)}>
+              Adaugă gramele și timpul
+            </Button>
+          ) : next && order.status !== 'anulata' && (
             <Button variant="primary" className="flex-1 sm:flex-none" onClick={() => changeStatus(order, next.status)}>
               {next.label}
             </Button>
@@ -188,6 +197,24 @@ export function OrderDetailPanel({
         </div>
       }
     >
+      {/* De proiectat: lipsesc gramele și timpul */}
+      {design && (
+        <section className="border-b border-line px-5 py-4">
+          <div className="flex items-start gap-3 rounded-tile border border-dashed border-accent/50 bg-accent/5 px-4 py-3.5">
+            <PencilRuler className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+            <div className="flex-1">
+              <div className="text-md">De proiectat</div>
+              <p className="mt-0.5 text-sm text-muted">
+                După ce termini modelul, pune gramele și timpul din slicer. Prețul se calculează automat și comanda poate intra în coadă.
+              </p>
+              <Button size="sm" variant="primary" className="mt-3" onClick={() => editPrintInfo(order)}>
+                Adaugă gramele și timpul
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Programare */}
       {item && (
         <Section title={item.isPrinting ? 'Se printează acum' : `În coadă · poziția ${schedule.items.indexOf(item) + 1}`}>
@@ -339,9 +366,9 @@ export function OrderDetailPanel({
           <Stat label="Material" value={order.material} />
           <Stat label="Culoare" value={order.culoare || '—'} />
           <Stat label="Bucăți" value={order.nr_bucati} />
-          <Stat label="Filament" value={grams(Number(order.grame_filament))} />
-          <Stat label="Durată" value={hours(Number(order.durata_print_ore))} />
-          <Stat label="Pe bucată" value={`${smart(Number(order.durata_print_ore) / order.nr_bucati, 1)} h`} />
+          <Stat label="Filament" value={noInfo ? <span className="text-muted">—</span> : grams(Number(order.grame_filament))} />
+          <Stat label="Durată" value={noInfo ? <span className="text-muted">—</span> : hours(Number(order.durata_print_ore))} />
+          <Stat label="Pe bucată" value={noInfo ? <span className="text-muted">—</span> : `${smart(Number(order.durata_print_ore) / order.nr_bucati, 1)} h`} />
           <Stat label="Data comenzii" value={date(order.data_comanda)} />
           <Stat label="Deadline" value={date(order.deadline)} />
           <Stat label={order.data_finalizare ? 'Finalizată' : 'Început'} value={order.data_finalizare ? dateTime(order.data_finalizare) : dateTime(order.data_start)} />

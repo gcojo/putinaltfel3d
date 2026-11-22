@@ -12,6 +12,7 @@ import { ErrorBanner, Skeleton, SkeletonCard } from '@/components/ui/Feedback';
 import { PrinterBoard } from '@/components/dashboard/PrinterBoard';
 import { WarningCard } from '@/components/dashboard/WarningCard';
 import { MonthlyBarChart } from '@/components/dashboard/MonthlyBarChart';
+import { DesignQueue } from '@/components/dashboard/DesignQueue';
 import { useOrderPanel } from '@/components/orders/OrderPanelProvider';
 
 function DashboardSkeleton() {
@@ -126,6 +127,8 @@ export default function DashboardPage() {
               </div>
             </Card>
           </div>
+
+          <DesignQueue />
 
           {/* Pod: Încasări (KPI-uri) */}
           <Card>

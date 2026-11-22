@@ -1,3 +1,6 @@
+import { afterEach } from 'vitest';
+import { cleanup } from '@testing-library/react';
+
 // Stub-uri pentru jsdom (Recharts / dnd-kit au nevoie de ele).
 class RO {
   observe() {}
@@ -15,3 +18,6 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+// Fiecare test pornește cu un DOM curat (fără globals, Testing Library nu face cleanup automat).
+afterEach(cleanup);

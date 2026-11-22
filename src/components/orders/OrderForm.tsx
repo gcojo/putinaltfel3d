@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calculator, ChevronDown, ImagePlus, Sparkles, Trash2 } from 'lucide-react';
+import { Calculator, ChevronDown, ImagePlus, PencilRuler, Sparkles, Trash2 } from 'lucide-react';
 import type { Client, Order, OrderInput, OrderStatus, PaymentMethod, Priority } from '@/types/db';
 import * as api from '@/lib/api';
 import { costBreakdown } from '@/lib/calc';
@@ -7,6 +7,7 @@ import { DEFAULT_MATERIALS, PAYMENT_METHODS, PRIORITIES, STATUSES } from '@/lib/
 import { dateTime, deadlineEnd, hours, lei, parseYmd, signedHours, toYmd, todayYmd } from '@/lib/format';
 import { parseDuration, parseNumber } from '@/lib/parse';
 import { estimateIfAppended } from '@/lib/schedule';
+import { missingPrintInfo } from '@/lib/design';
 import { useData } from '@/hooks/useData';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Segmented, Select, Textarea } from '@/components/ui/Field';
@@ -73,8 +74,8 @@ function fromOrder(o: Partial<Order> | undefined, clients: Client[]): FormState 
     descriere: o?.descriere ?? '',
     material: o?.material ?? 'PLA',
     culoare: o?.culoare ?? '',
-    grame_filament: o?.grame_filament != null ? String(o.grame_filament) : '',
-    durata_print_ore: o?.durata_print_ore != null ? String(o.durata_print_ore) : '',
+    grame_filament: Number(o?.grame_filament) > 0 ? String(o!.grame_filament) : '',
+    durata_print_ore: Number(o?.durata_print_ore) > 0 ? String(o!.durata_print_ore) : '',
     nr_bucati: String(o?.nr_bucati ?? 1),
     pret_vanzare: o?.pret_vanzare != null ? String(o.pret_vanzare) : '',
     status: o?.status ?? 'noua',
@@ -91,8 +92,9 @@ function fromOrder(o: Partial<Order> | undefined, clients: Client[]): FormState 
 function validate(f: FormState): Errors {
   const e: Errors = {};
   if (!f.titlu.trim()) e.titlu = 'Scrie un titlu pentru comandă.';
-  if (!isNum(f.grame_filament) || toNum(f.grame_filament) < 0) e.grame_filament = 'Introdu gramele (0 sau mai mult).';
-  if (!isHours(f.durata_print_ore) || toHours(f.durata_print_ore) < 0) e.durata_print_ore = 'Introdu durata (ex. 3.5 sau 2h 35m).';
+  // gramele și durata sunt opționale: se pot completa după proiectare
+  if (f.grame_filament.trim() !== '' && (!isNum(f.grame_filament) || toNum(f.grame_filament) < 0)) e.grame_filament = 'Gramele nu sunt valide.';
+  if (f.durata_print_ore.trim() !== '' && (!isHours(f.durata_print_ore) || toHours(f.durata_print_ore) < 0)) e.durata_print_ore = 'Durată invalidă (ex. 3.5 sau 2h 35m).';
   if (!isNum(f.nr_bucati) || !Number.isInteger(toNum(f.nr_bucati)) || toNum(f.nr_bucati) < 1) e.nr_bucati = 'Minim 1 bucată.';
   if (f.pret_vanzare.trim() !== '' && (!isNum(f.pret_vanzare) || toNum(f.pret_vanzare) < 0)) e.pret_vanzare = 'Preț invalid.';
   if (!f.data_comanda) e.data_comanda = 'Alege data comenzii.';
@@ -121,6 +123,9 @@ export function OrderFormPanel({
   const [uploading, setUploading] = useState(false);
   const [markup, setMarkup] = useState(String(settings.adaos_procent));
   const [showMore, setShowMore] = useState(!!order);
+  // comenzile noi se adaugă de obicei ÎNAINTE de proiectare: fără grame/timp/calculator
+  const hasPrintInfo = (o?: Partial<Order>) => Number(o?.grame_filament) > 0 || Number(o?.durata_print_ore) > 0;
+  const [showPrint, setShowPrint] = useState(() => !!order || hasPrintInfo(prefill));
   const [usedTemplate, setUsedTemplate] = useState<number | null>(null);
   const uploadedRef = useRef<string | null>(null);
   const initialRef = useRef('');
@@ -140,6 +145,7 @@ export function OrderFormPanel({
       reset(fromOrder(order ?? prefill, clients));
       setMarkup(String(settings.adaos_procent));
       setShowMore(!!order);
+      setShowPrint(!!order || hasPrintInfo(prefill));
     }
     // `clients` lipsește intenționat: o reîncărcare a datelor nu trebuie să golească formularul
   }, [open, order, prefill, settings.adaos_procent]);
@@ -164,7 +170,7 @@ export function OrderFormPanel({
     if (order) return undefined;
     const n = f.titlu.trim().toLowerCase();
     if (n.length < 2) return undefined;
-    return orders.find((o) => o.titlu.trim().toLowerCase() === n && o.status !== 'anulata');
+    return orders.find((o) => o.titlu.trim().toLowerCase() === n && o.status !== 'anulata' && !missingPrintInfo(o));
   }, [orders, f.titlu, order]);
 
   const applyTemplate = (o: Order) => {
@@ -184,6 +190,7 @@ export function OrderFormPanel({
     });
     setErrors({});
     setUsedTemplate(o.id);
+    setShowPrint(true);
   };
 
   const cost = costBreakdown(
@@ -251,6 +258,7 @@ export function OrderFormPanel({
     setErrors(errs);
     if (Object.values(errs).some(Boolean)) {
       if (errs.data_comanda) setShowMore(true);
+      if (errs.grame_filament || errs.durata_print_ore) setShowPrint(true);
       toast('Verifică câmpurile marcate cu roșu.', 'error');
       return;
     }
@@ -274,8 +282,8 @@ export function OrderFormPanel({
         descriere: f.descriere.trim() || null,
         material: f.material,
         culoare: f.culoare.trim() || null,
-        grame_filament: toNum(f.grame_filament),
-        durata_print_ore: toHours(f.durata_print_ore),
+        grame_filament: f.grame_filament.trim() ? toNum(f.grame_filament) : 0,
+        durata_print_ore: f.durata_print_ore.trim() ? Math.round(toHours(f.durata_print_ore) * 100) / 100 : 0,
         nr_bucati: toNum(f.nr_bucati),
         pret_vanzare: f.pret_vanzare.trim() === '' ? 0 : toNum(f.pret_vanzare),
         status: f.status,
@@ -291,7 +299,12 @@ export function OrderFormPanel({
       if (uploadedRef.current && uploadedRef.current !== f.poza_url) await api.removePhoto(uploadedRef.current).catch(() => undefined);
       uploadedRef.current = null;
 
-      let msg = order ? `Comanda #${saved.id} a fost actualizată.` : `Comanda #${saved.id} a fost adăugată.`;
+      const pending = missingPrintInfo(saved) && !order;
+      let msg = order
+        ? `Comanda #${saved.id} a fost actualizată.`
+        : pending
+          ? `Comanda #${saved.id} a fost adăugată · de proiectat.`
+          : `Comanda #${saved.id} a fost adăugată.`;
       const avans = !order && f.avans.trim() ? toNum(f.avans) : 0;
       if (avans > 0) {
         try {
@@ -311,6 +324,7 @@ export function OrderFormPanel({
           client_text: clientName,
           data_comanda: f.data_comanda,
         });
+        setShowPrint(false);
         document.getElementById('f-titlu')?.focus();
       } else onSaved(saved);
     } catch (err) {
@@ -325,7 +339,7 @@ export function OrderFormPanel({
       open={open}
       onClose={cancel}
       title={order ? `Editează comanda #${order.id}` : 'Comandă nouă'}
-      subtitle={order ? order.titlu : 'Doar titlul, gramele și durata sunt obligatorii.'}
+      subtitle={order ? order.titlu : 'Doar titlul e obligatoriu. Gramele și timpul le adaugi după proiectare.'}
       width="max-w-[560px]"
       footer={
         <div className="flex items-center justify-end gap-2">
@@ -432,6 +446,21 @@ export function OrderFormPanel({
           <Field label="Nr. bucăți" error={errors.nr_bucati} htmlFor="f-buc">
             <Input id="f-buc" inputMode="numeric" value={f.nr_bucati} onChange={(e) => set('nr_bucati', e.target.value)} invalid={!!errors.nr_bucati} />
           </Field>
+        </div>
+
+        {!showPrint ? (
+          <div className="flex flex-col gap-3 rounded-tile border border-dashed border-line px-4 py-3.5 sm:flex-row sm:items-center">
+            <PencilRuler className="hidden h-5 w-5 shrink-0 text-accent sm:block" />
+            <p className="flex-1 text-sm text-muted">
+              <span className="text-fg">Gramele și timpul de print le adaugi după ce proiectezi.</span> Comanda apare la „De proiectat” pe Dashboard, cu buton direct pentru ele.
+            </p>
+            <Button size="sm" onClick={() => setShowPrint(true)} className="self-start sm:self-auto">
+              Am deja datele
+            </Button>
+          </div>
+        ) : (
+        <>
+        <div className="grid grid-cols-2 gap-4">
           <Field label="Filament total" error={errors.grame_filament} htmlFor="f-grame">
             <Input id="f-grame" inputMode="decimal" value={f.grame_filament} onChange={(e) => set('grame_filament', e.target.value)} invalid={!!errors.grame_filament} suffix="g" placeholder="0" />
           </Field>
@@ -496,9 +525,17 @@ export function OrderFormPanel({
             </div>
           </div>
         </div>
+        </>
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Preț vânzare" error={errors.pret_vanzare} htmlFor="f-pret" hint={f.pret_vanzare.trim() === '' && cost.suggested ? 'Gol = 0 lei · apasă „Aplică” pentru prețul sugerat' : undefined}>
+          <Field label="Preț vânzare" error={errors.pret_vanzare} htmlFor="f-pret" hint={
+              f.pret_vanzare.trim() !== ''
+                ? undefined
+                : cost.suggested
+                  ? 'Gol = 0 lei · apasă „Aplică” pentru prețul sugerat'
+                  : 'Opțional · îl stabilești și după proiectare'
+            }>
             <Input id="f-pret" inputMode="decimal" value={f.pret_vanzare} onChange={(e) => set('pret_vanzare', e.target.value)} invalid={!!errors.pret_vanzare} suffix="lei" placeholder={cost.suggested ? String(cost.suggested) : '0'} />
           </Field>
           {!order && (

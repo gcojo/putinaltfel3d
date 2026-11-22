@@ -3,7 +3,11 @@ import type { Client, Order, OrderStatus } from '@/types/db';
 import { amountDue } from './calc';
 import { BUSY_QUEUE_DAYS, OVERDUE_PAYMENT_DAYS } from './constants';
 import { dateTime, daysBetween, deadlineEnd, hours, lei, signedHours } from './format';
+import { needsDesign } from './design';
 import { estimateIfAppended, suggestFix, type Schedule, type ScheduleSettings } from './schedule';
+
+/** Comandă neproiectată cu deadline mai aproape de atâtea zile = atenționare. */
+const DESIGN_WARN_DAYS = 3;
 
 export type WarningAction =
   | { kind: 'reorder'; label: string; queue: number[] }
@@ -93,7 +97,7 @@ export function buildWarnings(
   }
 
   // 4. Comenzi noi (neprogramate) care nu încap dacă intră la finalul cozii
-  for (const o of orders.filter((x) => x.status === 'noua' && x.deadline)) {
+  for (const o of orders.filter((x) => x.status === 'noua' && x.deadline && !needsDesign(x))) {
     const end = estimateIfAppended(schedule, Number(o.durata_print_ore), s);
     const margin = (deadlineEnd(o.deadline!).getTime() - end.getTime()) / 3_600_000;
     if (margin < 0) {
@@ -106,6 +110,23 @@ export function buildWarnings(
         orders: [o],
         recommendation: 'Pune-o în coadă și mut-o mai în față, sau renegociază termenul.',
         action: { kind: 'link', label: 'Deschide coada', to: '/coada' },
+      });
+    }
+  }
+
+  // 4b. Comenzi încă neproiectate cu deadline în mai puțin de 3 zile
+  for (const o of orders.filter((x) => x.deadline && needsDesign(x))) {
+    const left = (deadlineEnd(o.deadline!).getTime() - now.getTime()) / 3_600_000;
+    if (left < DESIGN_WARN_DAYS * 24) {
+      out.push({
+        id: `design-${o.id}`,
+        level: left < 24 ? 'critical' : 'warning',
+        title: `Comanda ${ref(o)} nu e proiectată încă`,
+        metric: signedHours(left),
+        detail: `${o.titlu}${clientName(o) ? ` · ${clientName(o)}` : ''} · ${o.nr_bucati} buc · deadline ${dateTime(deadlineEnd(o.deadline!))}`,
+        orders: [o],
+        recommendation: 'Proiecteaz-o și adaugă gramele și timpul, ca să vezi dacă încape în coadă.',
+        action: { kind: 'open', label: 'Deschide comanda', orderId: o.id },
       });
     }
   }

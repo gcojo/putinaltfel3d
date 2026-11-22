@@ -78,6 +78,12 @@ export async function saveOrder(input: OrderInput, id?: number): Promise<Order> 
   return check(res) as Order;
 }
 
+/** Actualizare parțială (ex. datele de print după proiectare). */
+export async function patchOrder(id: number, patch: Partial<OrderInput>): Promise<Order> {
+  const res = await supabase.from('orders').update(patch).eq('id', id).select('*').single();
+  return check(res) as Order;
+}
+
 export async function setOrderStatus(id: number, status: OrderStatus): Promise<Order> {
   const res = await supabase.from('orders').update({ status }).eq('id', id).select('*').single();
   return check(res) as Order;

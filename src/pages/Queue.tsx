@@ -5,11 +5,12 @@ import {
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { restrictToVerticalAxisModifier } from '@/components/queue/modifiers';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus } from 'lucide-react';
+import { GripVertical, PencilRuler, Plus } from 'lucide-react';
 import * as api from '@/lib/api';
 import { useData } from '@/hooks/useData';
 import { dateShort, dateTime, deadlineEnd, hours, relativeDateTime, signedHours, time } from '@/lib/format';
 import { estimateIfAppended, type ScheduledItem } from '@/lib/schedule';
+import { needsDesign } from '@/lib/design';
 import { PageHeader } from '@/components/layout/AppLayout';
 import { Card, CardHeader, ProgressBar } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -93,7 +94,7 @@ function Row({ item, index, draggable }: { item: ScheduledItem; index: number; d
 export default function QueuePage() {
   const { schedule, orders, settings, now, loading, error, reload, patchOrders, clientById } = useData();
   const { toast } = useFeedback();
-  const { openOrder, newOrder } = useOrderPanel();
+  const { openOrder, newOrder, editPrintInfo } = useOrderPanel();
   const changeStatus = useChangeStatus();
   const [saving, setSaving] = useState(false);
 
@@ -214,6 +215,26 @@ export default function QueuePage() {
             ) : (
               <ul>
                 {fresh.map((o) => {
+                  if (needsDesign(o)) {
+                    return (
+                      <li key={o.id} className="num flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2.5 last:border-b-0">
+                        <button onClick={() => openOrder(o.id)} className="min-w-0 flex-1 text-left">
+                          <span className="flex items-center gap-2">
+                            <span className="text-muted">#{o.id}</span>
+                            <span className="truncate">{o.titlu}</span>
+                          </span>
+                          <span className="block text-xs text-muted">
+                            {clientById(o.client_id)?.nume ?? 'Fără client'} · {o.nr_bucati} buc
+                            {o.deadline ? ` · deadline ${dateShort(o.deadline)}` : ''}
+                          </span>
+                        </button>
+                        <Signal signal="neutral" label="De proiectat" />
+                        <Button size="sm" icon={<PencilRuler className="h-3.5 w-3.5" />} onClick={() => editPrintInfo(o)}>
+                          Adaugă datele
+                        </Button>
+                      </li>
+                    );
+                  }
                   const end = estimateIfAppended(schedule, Number(o.durata_print_ore), settings);
                   const margin = o.deadline ? (deadlineEnd(o.deadline).getTime() - end.getTime()) / 3_600_000 : null;
                   const sig = margin == null ? 'neutral' : margin < 0 ? 'critical' : margin < 24 ? 'warning' : 'ok';

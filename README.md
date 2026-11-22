@@ -219,6 +219,15 @@ Aplicația apare cu iconița ei, se deschide pe tot ecranul și se actualizează
 - Când pui o comandă **Se printează**, ora de start se salvează automat; la **Finalizată**, ora de final.
 - Dacă imprimanta e deja ocupată, aplicația te întreabă dacă finalizezi comanda curentă.
 
+### Comandă nouă → proiectare → date de print
+
+1. **Comandă nouă**: doar titlul e obligatoriu. Completezi clientul, numărul de bucăți, materialul/culoarea, deadline-ul și, dacă e cazul, avansul. Gramele și timpul **nu** se cer (butonul „Am deja datele” le afișează, de ex. la o comandă repetată).
+2. Comanda apare la **De proiectat** — card pe Dashboard, filtru în Comenzi, secțiune în Coadă. Dacă deadline-ul e la mai puțin de 3 zile, apare și o atenționare.
+3. După proiectare, apasă **Adaugă gramele și timpul**: pui datele din slicer (pentru toată comanda sau pentru o singură bucată — se înmulțesc automat), prețul sugerat se calculează singur (câmp gol = preț sugerat), vezi când ar fi gata față de deadline și, bifat implicit, comanda intră direct în coadă.
+4. Dacă clientul are telefon, după salvare poți trimite **prețul pe WhatsApp** dintr-o apăsare.
+
+O comandă fără grame/timp nu poate intra în coadă: dacă încerci, se deschide întâi panoul cu datele de print.
+
 ### Costuri și prețuri
 
 - **Grame** și **ore** sunt **totale pentru toată comanda** (toate bucățile), exact cum le dă slicer-ul (Bambu Studio) pentru toate plăcile.

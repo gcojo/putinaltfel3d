@@ -5,6 +5,7 @@ import type { Order } from '@/types/db';
 import { useData } from '@/hooks/useData';
 import { amountDue } from '@/lib/calc';
 import { STATUSES } from '@/lib/constants';
+import { needsDesign } from '@/lib/design';
 import { exportOrders, exportPayments } from '@/lib/csv';
 import { dateShort, hours, lei, signedHours } from '@/lib/format';
 import type { ScheduledItem } from '@/lib/schedule';
@@ -68,7 +69,8 @@ export default function OrdersPage() {
     const needle = q.trim().toLowerCase();
     const list = orders.filter((o) => {
       if (status === 'active' && (o.status === 'livrata' || o.status === 'anulata')) return false;
-      if (status !== 'active' && status !== 'toate' && o.status !== status) return false;
+      if (status === 'proiectat' && !needsDesign(o)) return false;
+      if (!['active', 'toate', 'proiectat'].includes(status) && o.status !== status) return false;
       if (client && String(o.client_id ?? '') !== client) return false;
       if (platit === 'neplatit' && !(o.platit !== 'da' && amountDue(o) > 0)) return false;
       if (platit && platit !== 'neplatit' && o.platit !== platit) return false;
@@ -152,6 +154,7 @@ export default function OrdersPage() {
         <Select value={status} onChange={(e) => setParam('status', e.target.value === 'active' ? '' : e.target.value)} className="md:w-40" aria-label="Status">
           <option value="active">Active</option>
           <option value="toate">Toate statusurile</option>
+          <option value="proiectat">De proiectat</option>
           {STATUSES.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
@@ -261,7 +264,7 @@ export default function OrdersPage() {
                       {o.material}
                       {o.culoare ? ` · ${o.culoare}` : ''}
                     </td>
-                    <td className="text-right">{hours(Number(o.durata_print_ore))}</td>
+                    <td className="text-right">{needsDesign(o) ? <Signal signal="neutral" label="De proiectat" /> : hours(Number(o.durata_print_ore))}</td>
                     <td>
                       <DeadlineCell order={o} item={scheduled.get(o.id)} />
                     </td>
@@ -312,7 +315,7 @@ export default function OrdersPage() {
                       <StatusMenu order={o} short />
                     </span>
                     <span className="text-muted">
-                      {o.material} · {hours(Number(o.durata_print_ore))}
+                      {o.material} · {needsDesign(o) ? 'de proiectat' : hours(Number(o.durata_print_ore))}
                     </span>
                     <DeadlineCell order={o} item={item} />
                   </div>

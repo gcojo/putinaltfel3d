@@ -43,6 +43,8 @@ export function seedLike(): Order[] {
     order({ id: 12, pozitie_in_coada: 4, durata_print_ore: 4, deadline: d(1), prioritate: 'urgenta', client_id: 3 }),
     order({ id: 13, pozitie_in_coada: 5, durata_print_ore: 7, deadline: d(4) }),
     order({ id: 14, status: 'noua', durata_print_ore: 5, deadline: d(10) }),
+    // adăugată înainte de proiectare: fără grame și timp
+    order({ id: 15, status: 'noua', titlu: 'Figurină dragon', grame_filament: 0, durata_print_ore: 0, cost_material: 0, pret_vanzare: 0, nr_bucati: 3, deadline: d(2), client_id: 2 }),
   ];
 }
 
