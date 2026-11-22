@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Client, Order, Payment, Settings } from '@/types/db';
+import type { Client, FilamentMove, Order, Payment, Product, Settings } from '@/types/db';
 import * as api from '@/lib/api';
 import { PRINTER_ALWAYS_ON } from '@/lib/constants';
 import { buildSchedule, type Schedule } from '@/lib/schedule';
 import { buildWarnings, type Warning } from '@/lib/warnings';
+import { buildStock, type StockItem } from '@/lib/stock';
 import { useNow } from './useNow';
 
 export interface DataState {
@@ -11,6 +12,12 @@ export interface DataState {
   orders: Order[];
   payments: Payment[];
   settings: Settings;
+  products: Product[];
+  moves: FilamentMove[];
+  /** stocul de filament calculat din mișcări */
+  stock: StockItem[];
+  /** false = migrația 0004 nu a fost rulată (catalog / stoc indisponibile) */
+  migrated: boolean;
   loading: boolean;
   error: string | null;
   now: Date;
@@ -34,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   zile_libere: [],
   date_libere: [],
   adaos_procent: 100,
+  tarif_proiectare_lei_ora: 50,
   updated_at: '',
 };
 
@@ -42,6 +50,9 @@ export interface RawData {
   orders: Order[];
   payments: Payment[];
   settings: Settings;
+  products?: Product[];
+  moves?: FilamentMove[];
+  migrated?: boolean;
 }
 
 /** `initial` permite injectarea datelor (teste); `fixedNow` fixează ora. */
@@ -55,9 +66,9 @@ export function DataProvider({ children, initial, fixedNow }: { children: ReactN
   const reload = useCallback(async () => {
     if (initial) return;
     try {
-      const data = await api.fetchAll();
+      const [data, extras] = await Promise.all([api.fetchAll(), api.fetchExtras()]);
       const settings = data.settings ?? (await api.ensureSettings());
-      setRaw({ ...data, settings });
+      setRaw({ ...data, settings, ...extras });
       setError(null);
     } catch (e) {
       setError(api.friendlyError(e));
@@ -77,17 +88,27 @@ export function DataProvider({ children, initial, fixedNow }: { children: ReactN
   }, [reload]);
 
   // imprimanta merge non-stop: programul din baza de date e ignorat
-  const settings = useMemo<Settings>(() => ({ ...raw.settings, ...PRINTER_ALWAYS_ON }), [raw.settings]);
+  const settings = useMemo<Settings>(
+    () => ({ ...raw.settings, tarif_proiectare_lei_ora: Number(raw.settings.tarif_proiectare_lei_ora ?? 50), ...PRINTER_ALWAYS_ON }),
+    [raw.settings],
+  );
+  const products = raw.products ?? [];
+  const moves = useMemo(() => raw.moves ?? [], [raw.moves]);
+  const stock = useMemo(() => buildStock(moves, raw.orders), [moves, raw.orders]);
   const schedule = useMemo(() => buildSchedule(raw.orders, settings, now), [raw.orders, settings, now]);
   const warnings = useMemo(
-    () => buildWarnings(raw.orders, raw.clients, schedule, settings, now),
-    [raw.orders, raw.clients, schedule, settings, now],
+    () => buildWarnings(raw.orders, raw.clients, schedule, settings, now, stock),
+    [raw.orders, raw.clients, schedule, settings, now, stock],
   );
   const clientMap = useMemo(() => new Map(raw.clients.map((c) => [c.id, c])), [raw.clients]);
 
   const value: DataState = {
     ...raw,
     settings,
+    products,
+    moves,
+    stock,
+    migrated: raw.migrated ?? !!raw.products,
     loading,
     error,
     now,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseDuration, parseNumber } from './parse';
+import { parseDuration, parseNumber, parseSlicerText } from './parse';
 import { messageTemplates, waLink, waNumber } from './contact';
 import { seedLike } from '@/test/fixtures';
 
@@ -52,5 +52,25 @@ describe('contact', () => {
     expect(t[0].text).toContain('Bună Ana!');
     expect(t[0].text).toContain('60 lei');
     expect(t.some((x) => x.id === 'plata')).toBe(true);
+  });
+});
+
+describe('text copiat din slicer', () => {
+  it('Bambu Studio: total filament + timp', () => {
+    const r = parseSlicerText('Model printing time: 2h21m\nTotal time: 2h35m12s\nFilament: 15.12 m  45.23 g\nTotal filament: 45.23 g');
+    expect(r.grams).toBe(45.23);
+    expect(r.hours).toBe(2.59);
+  });
+  it('mai multe filamente fără total se adună', () => {
+    const r = parseSlicerText('Filament 1: 30 g\nFilament 2: 12,5 g\nTimp: 1d 3h');
+    expect(r.grams).toBe(42.5);
+    expect(r.hours).toBe(27);
+  });
+  it('pe un singur rând, cu metri și kg', () => {
+    expect(parseSlicerText('3.2 m · 1.2 kg · 14h 5m')).toEqual({ grams: 1200, hours: 14.08 });
+    expect(parseSlicerText('45m 30s, 12g')).toEqual({ grams: 12, hours: 0.76 });
+  });
+  it('fără date', () => {
+    expect(parseSlicerText('nimic aici')).toEqual({});
   });
 });

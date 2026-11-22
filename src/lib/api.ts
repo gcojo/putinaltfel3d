@@ -1,6 +1,7 @@
 // Toate apelurile către Supabase, cu mesaje de eroare în română.
 import type {
-  Client, ClientInput, Order, OrderEvent, OrderInput, OrderStatus, Payment, PaymentInput, Settings, SettingsInput,
+  Client, ClientInput, FilamentMove, FilamentMoveInput, Order, OrderEvent, OrderInput, OrderStatus, Payment, PaymentInput,
+  Product, ProductInput, Settings, SettingsInput,
 } from '@/types/db';
 import { PHOTO_BUCKET, supabase } from './supabase';
 
@@ -45,6 +46,28 @@ export async function fetchAll() {
   };
 }
 
+/** Tabele din migrația 0004: dacă nu a fost rulată încă, aplicația merge mai departe fără ele. */
+export async function fetchExtras(): Promise<{ products: Product[]; moves: FilamentMove[]; migrated: boolean }> {
+  const [products, moves] = await Promise.all([
+    supabase.from('products').select('*').order('nume'),
+    supabase.from('filament_moves').select('*').order('created_at', { ascending: false }),
+  ]);
+  migrated0004 = !products.error && !moves.error;
+  if (!migrated0004) return { products: [], moves: [], migrated: false };
+  return { products: products.data as Product[], moves: moves.data as FilamentMove[], migrated: true };
+}
+
+let migrated0004 = false;
+
+/** Înainte de migrația 0004, câmpurile noi se trimit doar când au valoare (altfel salvarea ar eșua). */
+function withoutEmptyExtras<T extends Partial<OrderInput>>(input: T): T {
+  const out = { ...input };
+  if (migrated0004) return out;
+  if (!out.ore_proiectare) delete out.ore_proiectare;
+  if (out.componente === undefined) delete out.componente;
+  return out;
+}
+
 export async function ensureSettings(): Promise<Settings> {
   // de obicei rândul e creat automat de trigger; aici e doar o plasă de siguranță
   check(await supabase.from('settings').upsert({ adaos_procent: 100 }, { onConflict: 'user_id', ignoreDuplicates: true }));
@@ -73,14 +96,14 @@ export async function deleteClient(id: number) {
 
 export async function saveOrder(input: OrderInput, id?: number): Promise<Order> {
   const res = id
-    ? await supabase.from('orders').update(input).eq('id', id).select('*').single()
-    : await supabase.from('orders').insert(input).select('*').single();
+    ? await supabase.from('orders').update(withoutEmptyExtras(input)).eq('id', id).select('*').single()
+    : await supabase.from('orders').insert(withoutEmptyExtras(input)).select('*').single();
   return check(res) as Order;
 }
 
 /** Actualizare parțială (ex. datele de print după proiectare). */
 export async function patchOrder(id: number, patch: Partial<OrderInput>): Promise<Order> {
-  const res = await supabase.from('orders').update(patch).eq('id', id).select('*').single();
+  const res = await supabase.from('orders').update(withoutEmptyExtras(patch)).eq('id', id).select('*').single();
   return check(res) as Order;
 }
 
@@ -121,6 +144,29 @@ export async function deletePayment(id: number) {
 export async function saveSettings(input: SettingsInput): Promise<Settings> {
   const res = await supabase.from('settings').upsert(input, { onConflict: 'user_id' }).select('*').single();
   return check(res) as Settings;
+}
+
+// ------------------------------------------------------------------ catalog
+
+export async function saveProduct(input: ProductInput, id?: number): Promise<Product> {
+  const res = id
+    ? await supabase.from('products').update(input).eq('id', id).select('*').single()
+    : await supabase.from('products').insert(input).select('*').single();
+  return check(res) as Product;
+}
+
+export async function deleteProduct(id: number) {
+  check(await supabase.from('products').delete().eq('id', id));
+}
+
+// ------------------------------------------------------------------ stoc filament
+
+export async function addFilamentMove(input: FilamentMoveInput): Promise<FilamentMove> {
+  return check(await supabase.from('filament_moves').insert(input).select('*').single()) as FilamentMove;
+}
+
+export async function deleteFilamentMove(id: number) {
+  check(await supabase.from('filament_moves').delete().eq('id', id));
 }
 
 // ------------------------------------------------------------------ poze

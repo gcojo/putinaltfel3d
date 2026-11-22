@@ -4,8 +4,8 @@ import type { Order, OrderStatus } from '@/types/db';
 export interface OrderPanelCtx {
   /** deschide panoul lateral de detaliu */
   openOrder: (id: number) => void;
-  /** formular comandă nouă (opțional precompletat) */
-  newOrder: (prefill?: Partial<Order>) => void;
+  /** formular comandă nouă (opțional precompletat sau dintr-un produs din catalog) */
+  newOrder: (prefill?: Partial<Order>, productId?: number) => void;
   editOrder: (order: Order) => void;
   /**
    * după proiectare: gramele, timpul și prețul.

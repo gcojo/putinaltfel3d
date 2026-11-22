@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  ChartColumn, ChevronsLeft, ChevronsRight, LayoutGrid, ListOrdered, LogOut, Moon, Package, Plus, Settings, Sun, Users,
+  BookOpen, ChartColumn, ChevronsLeft, ChevronsRight, Cylinder, Ellipsis, LayoutGrid, ListOrdered, LogOut, Moon, Package, Plus, Settings, Sun, Users,
 } from 'lucide-react';
 import { BrandMark } from '@/components/ui/Logo';
 import { Dot } from '@/components/ui/Status';
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useData } from '@/hooks/useData';
 import { useOrderPanel } from '@/components/orders/OrderPanelProvider';
 import { useTheme } from '@/hooks/useTheme';
+import { usePrintNotifications } from '@/hooks/usePrintNotifications';
 
 /** Soare / lună suprapuse: iconița activă intră rotindu-se, cealaltă iese. */
 function ThemeIcon({ dark, className = 'h-[18px] w-[18px]' }: { dark: boolean; className?: string }) {
@@ -26,9 +27,14 @@ const NAV = [
   { to: '/comenzi', label: 'Comenzi', icon: Package },
   { to: '/coada', label: 'Coadă', icon: ListOrdered },
   { to: '/clienti', label: 'Clienți', icon: Users },
+  { to: '/catalog', label: 'Catalog', icon: BookOpen },
+  { to: '/filament', label: 'Filament', icon: Cylinder },
   { to: '/statistici', label: 'Statistici', icon: ChartColumn },
   { to: '/setari', label: 'Setări', icon: Settings },
 ];
+
+/** pe mobil: primele 4 jos, restul în „Mai mult” */
+const MOBILE_MAIN = ['/', '/comenzi', '/coada', '/filament'];
 
 const EXPANDED_KEY = 'sidebar-expanded';
 
@@ -37,6 +43,7 @@ export function AppLayout() {
   const { warnings, schedule } = useData();
   const { newOrder } = useOrderPanel();
   const { isDark, toggle: toggleTheme } = useTheme();
+  usePrintNotifications();
   const themeLabel = isDark ? 'Mod luminos' : 'Mod întunecat';
   const [expanded, setExpanded] = useState(() => {
     try {
@@ -46,6 +53,8 @@ export function AppLayout() {
     }
   });
   const location = useLocation();
+  const [more, setMore] = useState(false);
+  useEffect(() => setMore(false), [location.pathname]);
   const navigate = useNavigate();
   const printing = schedule.items.some((i) => i.isPrinting);
   // poziția „pastilei” roșii care alunecă sub elementul activ din meniu
@@ -224,8 +233,26 @@ export function AppLayout() {
 
       {/* Navigare jos pe mobil */}
       <nav className="pb-safe glass fixed inset-x-0 bottom-0 z-30 rounded-none border-x-0 border-b-0 md:hidden">
+        {more && (
+          <>
+            <div className="fixed inset-0 -z-10" onClick={() => setMore(false)} aria-hidden />
+            <div role="menu" className="glass-panel absolute bottom-full right-2 mb-2 w-52 animate-pop-in rounded-tile py-1">
+              {NAV.filter((n) => !MOBILE_MAIN.includes(n.to)).map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  role="menuitem"
+                  className={({ isActive }) => `flex h-11 items-center gap-3 px-4 text-sm ${isActive ? 'text-accent' : 'text-fg'}`}
+                >
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+          </>
+        )}
         <div className="grid h-15 grid-cols-5">
-          {NAV.slice(0, 5).map(({ to, label, icon: Icon, end }) => (
+          {NAV.filter((n) => MOBILE_MAIN.includes(n.to)).map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -249,6 +276,15 @@ export function AppLayout() {
               )}
             </NavLink>
           ))}
+          <button
+            onClick={() => setMore((v) => !v)}
+            aria-expanded={more}
+            aria-haspopup="menu"
+            className={`relative flex flex-col items-center justify-center gap-1 transition-colors duration-200 ${more || !NAV.some((n) => MOBILE_MAIN.includes(n.to) && (n.end ? location.pathname === n.to : location.pathname.startsWith(n.to))) ? 'text-accent' : 'text-muted'}`}
+          >
+            <Ellipsis className="h-5 w-5" strokeWidth={1.6} />
+            <span className="text-[10px] leading-none">Mai mult</span>
+          </button>
         </div>
       </nav>
     </div>

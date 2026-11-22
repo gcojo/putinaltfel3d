@@ -7,6 +7,9 @@ import { FeedbackProvider } from '@/components/ui/Toast';
 import { OrderPanelProvider } from '@/components/orders/OrderPanelProvider';
 import { AppLayout } from '@/components/layout/AppLayout';
 import DashboardPage from '@/pages/Dashboard';
+import CatalogPage from '@/pages/Catalog';
+import FilamentPage from '@/pages/Filament';
+import type { FilamentMove, Product } from '@/types/db';
 import OrdersPage from '@/pages/Orders';
 import QueuePage from '@/pages/Queue';
 import ClientsPage from '@/pages/Clients';
@@ -16,11 +19,11 @@ import SettingsPage from '@/pages/Settings';
 import LoginPage from '@/pages/Login';
 import { NOW, clients, payments, seedLike, settings } from './fixtures';
 
-function renderAt(path: string) {
+function renderAt(path: string, extras?: { products: Product[]; moves: FilamentMove[] }) {
   return render(
     <AuthProvider>
       <MemoryRouter initialEntries={[path]}>
-        <DataProvider initial={{ clients, orders: seedLike(), payments, settings }} fixedNow={NOW}>
+        <DataProvider initial={{ clients, orders: seedLike(), payments, settings, ...(extras ? { ...extras, migrated: true } : {}) }} fixedNow={NOW}>
           <FeedbackProvider>
             <OrderPanelProvider>
               <Routes>
@@ -31,6 +34,8 @@ function renderAt(path: string) {
                   <Route path="coada" element={<QueuePage />} />
                   <Route path="clienti" element={<ClientsPage />} />
                   <Route path="clienti/:id" element={<ClientDetailPage />} />
+                  <Route path="catalog" element={<CatalogPage />} />
+                  <Route path="filament" element={<FilamentPage />} />
                   <Route path="statistici" element={<StatsPage />} />
                   <Route path="setari" element={<SettingsPage />} />
                 </Route>
@@ -74,8 +79,12 @@ describe('pagini', () => {
     expect(screen.getByText('Calculator cost')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Filament total'), { target: { value: '250' } });
     fireEvent.change(screen.getByLabelText('Durată print totală'), { target: { value: '5' } });
-    expect(screen.getAllByText('25.00 lei').length).toBe(2); // cost material + cost / bucată
+    expect(screen.getByText('25.00 lei')).toBeTruthy(); // cost material
     expect(screen.getAllByText('50 lei').length).toBeGreaterThan(0); // preț sugerat = 25 × 2 (adaos 100%), fără curent
+    // 2 ore de proiectare × 50 lei/oră se adaugă la prețul sugerat
+    fireEvent.change(screen.getByLabelText('Timp de proiectare'), { target: { value: '2' } });
+    expect(screen.getByText('100.00 lei')).toBeTruthy();
+    expect(screen.getAllByText('150 lei').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText('Adaugă comanda'));
     expect(screen.getByText('Scrie un titlu pentru comandă.')).toBeTruthy();
   });
@@ -120,6 +129,51 @@ describe('pagini', () => {
     expect(within(table).getAllByRole('row').length).toBe(3); // antet + 1 rând + total
     fireEvent.click(within(table).getByText('Figurină dragon'));
     expect(screen.getAllByText('Adaugă gramele și timpul').length).toBe(2);
+  });
+
+  it('Lipire din Bambu Studio completează gramele și timpul', () => {
+    renderAt('/');
+    fireEvent.click(screen.getByText('Adaugă datele'));
+    fireEvent.paste(screen.getByLabelText('Lipește din Bambu Studio'), {
+      clipboardData: { getData: () => 'Total time: 2h30m\nTotal filament: 45.5 g' },
+    });
+    expect((screen.getByLabelText('Filament total') as HTMLInputElement).value).toBe('45.5');
+    expect((screen.getByLabelText('Durată totală') as HTMLInputElement).value).toBe('2.5');
+    expect(screen.getByText('Am găsit: 45.5 g · 2.5 h')).toBeTruthy();
+    // mai multe culori
+    fireEvent.click(screen.getByText('Mai multe culori'));
+    expect(screen.getByLabelText('Culoare 2')).toBeTruthy();
+  });
+
+  it('Fără migrația 0004: catalogul și stocul explică pasul din Supabase', () => {
+    renderAt('/catalog');
+    expect(screen.getByText(/0004_proiectare_stoc_catalog.sql/)).toBeTruthy();
+  });
+
+  it('Catalog: produs → comandă nouă cu valorile înmulțite', () => {
+    const products: Product[] = [
+      { id: 1, user_id: 'u', nume: 'Breloc inimă', descriere: null, material: 'PLA', culoare: 'Roșu', componente: null, grame: 12, ore: 0.5, pret: 15, note: null, created_at: '' },
+    ];
+    renderAt('/catalog', { products, moves: [] });
+    expect(screen.getByText('Breloc inimă')).toBeTruthy();
+    fireEvent.click(screen.getByText('Comandă'));
+    expect((screen.getByLabelText('Titlu') as HTMLInputElement).value).toBe('Breloc inimă');
+    fireEvent.change(screen.getByLabelText('Nr. bucăți'), { target: { value: '10' } });
+    expect((screen.getByLabelText('Filament total') as HTMLInputElement).value).toBe('120');
+    expect((screen.getByLabelText('Preț vânzare') as HTMLInputElement).value).toBe('150');
+  });
+
+  it('Filament: stoc, rezervat pentru coadă și avertizare când nu ajunge', () => {
+    const moves: FilamentMove[] = [
+      { id: 1, user_id: 'u', material: 'PLA', culoare: null, grame: 1000, tip: 'rola', order_id: null, note: null, created_at: '2026-11-01T10:00:00Z' },
+      { id: 2, user_id: 'u', material: 'PLA', culoare: null, grame: -700, tip: 'comanda', order_id: 1, note: null, created_at: '2026-11-10T10:00:00Z' },
+    ];
+    renderAt('/filament', { products: [], moves });
+    expect(screen.getByText('300 g')).toBeTruthy();
+    // coada din fixture are 6 comenzi PLA × 100 g = 600 g rezervate
+    expect(screen.getByText(/rezervat pentru coadă 600 g/)).toBeTruthy();
+    renderAt('/', { products: [], moves });
+    expect(screen.getByText('Nu ai destul PLA')).toBeTruthy();
   });
 
   it('Formular comandă: Escape cu date completate cere confirmare', () => {

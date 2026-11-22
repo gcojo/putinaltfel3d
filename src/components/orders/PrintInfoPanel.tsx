@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Calculator, PencilRuler } from 'lucide-react';
-import type { Order, OrderInput, OrderStatus } from '@/types/db';
+import type { Component, Order, OrderInput, OrderStatus } from '@/types/db';
 import * as api from '@/lib/api';
 import { costBreakdown } from '@/lib/calc';
-import { DEFAULT_MATERIALS, STATUS_MAP } from '@/lib/constants';
+import { STATUS_MAP } from '@/lib/constants';
 import { priceMessage, waLink } from '@/lib/contact';
-import { dateTime, deadlineEnd, grams, hours, lei, signedHours } from '@/lib/format';
+import { dateTime, deadlineEnd, grams, hours, lei, signedHours, smart } from '@/lib/format';
 import { parseDuration, parseNumber } from '@/lib/parse';
 import { estimateIfAppended } from '@/lib/schedule';
+import { componentsLabel } from '@/lib/stock';
 import { useData } from '@/hooks/useData';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Segmented } from '@/components/ui/Field';
 import { Dot } from '@/components/ui/Status';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { useFeedback } from '@/components/ui/Toast';
+import { PartsEditor, SlicerPaste, StockHint, partsTotal, toParts, useColors, useMaterials, type PartRow } from './printFields';
 import { useChangeStatus } from './useOrderActions';
 
 const isNum = (s: string) => Number.isFinite(parseNumber(s));
@@ -28,17 +30,25 @@ interface State {
   mode: Mode;
   material: string;
   culoare: string;
+  /** mai multe culori / materiale */
+  multi: boolean;
+  parts: PartRow[];
+  proiectare: string;
   pret: string;
   queue: boolean;
 }
 
 function fromOrder(o: Order | undefined): State {
+  const parts = toParts(o?.componente);
   return {
     grame: o && Number(o.grame_filament) > 0 ? String(Number(o.grame_filament)) : '',
     durata: o && Number(o.durata_print_ore) > 0 ? String(Number(o.durata_print_ore)) : '',
     mode: 'total',
     material: o?.material ?? 'PLA',
     culoare: o?.culoare ?? '',
+    multi: parts.length > 0,
+    parts: parts.length ? parts : [{ material: o?.material ?? 'PLA', culoare: o?.culoare ?? '', grame: '' }, { material: o?.material ?? 'PLA', culoare: '', grame: '' }],
+    proiectare: o && Number(o.ore_proiectare) > 0 ? String(Number(o.ore_proiectare)) : '',
     pret: o && Number(o.pret_vanzare) > 0 ? String(Number(o.pret_vanzare)) : '',
     queue: o?.status === 'noua',
   };
@@ -50,8 +60,8 @@ const THEN_LABEL: Partial<Record<OrderStatus, string>> = {
 };
 
 /**
- * Pasul de după proiectare: gramele și timpul din slicer (Bambu Studio),
- * prețul calculat automat și, opțional, intrarea directă în coadă.
+ * Pasul de după proiectare: gramele și timpul din slicer (Bambu Studio), una sau mai multe culori,
+ * orele de proiectare, prețul calculat automat și, opțional, intrarea directă în coadă.
  */
 export function PrintInfoPanel({
   open, order: initial, thenStatus, onClose,
@@ -62,15 +72,17 @@ export function PrintInfoPanel({
   thenStatus?: OrderStatus;
   onClose: () => void;
 }) {
-  const { orders, settings, schedule, clientById, reload } = useData();
+  const { orders, settings, schedule, clientById, reload, migrated } = useData();
   const { toast, confirm } = useFeedback();
   const changeStatus = useChangeStatus();
   // mereu varianta proaspătă din date (ex. o încasare adăugată între timp)
   const order = initial ? orders.find((o) => o.id === initial.id) ?? initial : undefined;
   const [s, setS] = useState<State>(() => fromOrder(order));
-  const [errors, setErrors] = useState<{ grame?: string; durata?: string; pret?: string }>({});
+  const [errors, setErrors] = useState<{ grame?: string; durata?: string; pret?: string; proiectare?: string }>({});
   const [saving, setSaving] = useState(false);
   const initialRef = useRef('');
+  const materials = useMaterials(s.material);
+  const colors = useColors();
 
   useEffect(() => {
     if (open && initial) {
@@ -87,21 +99,22 @@ export function PrintInfoPanel({
     if (k in errors) setErrors((e) => ({ ...e, [k]: undefined }));
   };
 
-  const materials = useMemo(() => {
-    const list = Object.keys(settings.pret_filament_lei_kg ?? {});
-    const all = list.length ? list : DEFAULT_MATERIALS;
-    return all.includes(s.material) ? all : [...all, s.material];
-  }, [settings.pret_filament_lei_kg, s.material]);
-
   if (!order) return null;
 
   const pieces = Math.max(1, Number(order.nr_bucati) || 1);
   const mult = s.mode === 'buc' ? pieces : 1;
-  const g = isNum(s.grame) ? parseNumber(s.grame) : 0;
+  const filledParts = s.parts.filter((p) => isNum(p.grame) && parseNumber(p.grame) > 0);
+  const g = s.multi ? partsTotal(s.parts) : isNum(s.grame) ? parseNumber(s.grame) : 0;
   const h = isHours(s.durata) ? parseDuration(s.durata) : 0;
   const totalG = round2(g * mult);
   const totalH = round2(h * mult);
-  const cost = costBreakdown(settings, { material: s.material, grame_filament: totalG, durata_print_ore: totalH, nr_bucati: pieces });
+  const componente: Component[] | null = s.multi
+    ? filledParts.map((p) => ({ material: p.material, culoare: p.culoare.trim() || null, grame: round2(parseNumber(p.grame) * mult) }))
+    : null;
+  const design = isHours(s.proiectare) ? parseDuration(s.proiectare) : 0;
+  const cost = costBreakdown(settings, {
+    material: s.material, grame_filament: totalG, durata_print_ore: totalH, nr_bucati: pieces, ore_proiectare: design, componente,
+  });
   const price = s.pret.trim() && isNum(s.pret) ? parseNumber(s.pret) : cost.suggested;
   const profit = price - cost.total;
   const client = clientById(order.client_id);
@@ -120,8 +133,9 @@ export function PrintInfoPanel({
   const save = async () => {
     if (saving) return;
     const e: typeof errors = {};
-    if (!isNum(s.grame) || g <= 0) e.grame = 'Introdu gramele din slicer.';
+    if (s.multi ? filledParts.length === 0 : !isNum(s.grame) || g <= 0) e.grame = 'Introdu gramele din slicer.';
     if (!isHours(s.durata) || h <= 0) e.durata = 'Introdu timpul (ex. 3.5 sau 2h 35m).';
+    if (s.proiectare.trim() && (!isHours(s.proiectare) || design < 0)) e.proiectare = 'Ore invalide (ex. 1.5 sau 1h 30m).';
     if (s.pret.trim() && (!isNum(s.pret) || parseNumber(s.pret) < 0)) e.pret = 'Preț invalid.';
     setErrors(e);
     if (Object.values(e).some(Boolean)) return;
@@ -131,10 +145,13 @@ export function PrintInfoPanel({
       const patch: Partial<OrderInput> = {
         grame_filament: totalG,
         durata_print_ore: totalH,
-        material: s.material,
-        culoare: s.culoare.trim() || null,
+        material: componente?.length ? componente[0].material : s.material,
+        culoare: componente?.length ? componentsLabel(componente) : s.culoare.trim() || null,
         pret_vanzare: round2(price),
+        ore_proiectare: round2(design),
       };
+      // coloana există doar după migrația 0004
+      if (migrated) patch.componente = componente?.length ? componente : null;
       if (target === 'in_coada' && order.status !== 'in_coada') patch.status = 'in_coada';
       const saved = await api.patchOrder(order.id, patch);
       await reload();
@@ -156,6 +173,9 @@ export function PrintInfoPanel({
     }
   };
 
+  const durationHint =
+    h > 0 ? [!isNum(s.durata) ? `= ${hours(h)}` : '', s.mode === 'buc' ? `total ${hours(totalH)}` : ''].filter(Boolean).join(' · ') || undefined : undefined;
+
   return (
     <SlideOver
       open={open}
@@ -173,7 +193,7 @@ export function PrintInfoPanel({
           {client ? ` · ${client.nume}` : ''}
         </span>
       }
-      width="max-w-[520px]"
+      width="max-w-[540px]"
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" onClick={cancel} className="mr-auto sm:mr-0">
@@ -206,6 +226,16 @@ export function PrintInfoPanel({
           </p>
         )}
 
+        <SlicerPaste
+          onFound={(info) =>
+            setS((x) => ({
+              ...x,
+              ...(info.hours != null ? { durata: String(info.hours) } : {}),
+              ...(info.grams != null && !x.multi ? { grame: String(info.grams) } : {}),
+            }))
+          }
+        />
+
         {pieces > 1 && (
           <Field label="Ce ai în slicer?">
             <Segmented
@@ -219,57 +249,96 @@ export function PrintInfoPanel({
           </Field>
         )}
 
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="label">Filament</span>
+            <Segmented
+              value={s.multi ? 'multi' : 'one'}
+              onChange={(v) => set('multi', v === 'multi')}
+              options={[
+                { value: 'one', label: 'O culoare' },
+                { value: 'multi', label: 'Mai multe culori' },
+              ]}
+            />
+          </div>
+          {s.multi ? (
+            <>
+              <PartsEditor rows={s.parts} onChange={(rows) => set('parts', rows)} mult={mult} label={s.mode === 'buc' ? 'g/buc' : 'g'} />
+              {errors.grame ? (
+                <p className="text-xs text-critical" role="alert">{errors.grame}</p>
+              ) : g > 0 ? (
+                <p className="num text-xs text-muted">total {grams(totalG)}</p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Material">
+                {materials.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={s.material === m}
+                    onClick={() => set('material', m)}
+                    className={`h-8 rounded-[10px] border px-3 text-sm transition-colors ${s.material === m ? 'border-accent bg-accent text-white shadow-glow' : 'border-line text-muted hover:border-fg hover:text-fg'}`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Culoare" htmlFor="p-culoare">
+                  <Input id="p-culoare" value={s.culoare} onChange={(e) => set('culoare', e.target.value)} placeholder="ex. Negru mat" list="p-culori" autoComplete="off" />
+                  <datalist id="p-culori">
+                    {colors.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </Field>
+                <Field
+                  label={s.mode === 'buc' ? 'Filament / bucată' : 'Filament total'}
+                  error={errors.grame}
+                  htmlFor="p-grame"
+                  hint={s.mode === 'buc' && g > 0 ? `total ${grams(totalG)}` : undefined}
+                >
+                  <Input id="p-grame" inputMode="decimal" value={s.grame} onChange={(e) => set('grame', e.target.value)} invalid={!!errors.grame} suffix="g" placeholder="ex. 120" autoFocus />
+                </Field>
+              </div>
+              <StockHint material={s.material} culoare={s.culoare} need={totalG} />
+            </>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
-          <Field
-            label={s.mode === 'buc' ? 'Filament / bucată' : 'Filament total'}
-            error={errors.grame}
-            htmlFor="p-grame"
-            hint={s.mode === 'buc' && g > 0 ? `total ${grams(totalG)}` : undefined}
-          >
-            <Input id="p-grame" inputMode="decimal" value={s.grame} onChange={(e) => set('grame', e.target.value)} invalid={!!errors.grame} suffix="g" placeholder="ex. 120" autoFocus />
-          </Field>
           <Field
             label={s.mode === 'buc' ? 'Durată / bucată' : 'Durată totală'}
             error={errors.durata}
             htmlFor="p-ore"
-            hint={
-              h > 0
-                ? `${!isNum(s.durata) ? `= ${hours(h)}` : ''}${s.mode === 'buc' ? `${!isNum(s.durata) ? ' · ' : ''}total ${hours(totalH)}` : ''}` || 'merge și „2h 35m” din Bambu'
-                : 'merge și „2h 35m” din Bambu'
-            }
+            hint={durationHint ?? 'merge și „2h 35m” din Bambu'}
           >
             <Input id="p-ore" value={s.durata} onChange={(e) => set('durata', e.target.value)} invalid={!!errors.durata} suffix="h" placeholder="3.5" />
           </Field>
+          <Field
+            label="Timp de proiectare"
+            error={errors.proiectare}
+            htmlFor="p-proiect"
+            hint={design > 0 ? `= ${lei(cost.design)} (${smart(Number(settings.tarif_proiectare_lei_ora ?? 0))} lei/oră)` : 'opțional · se adaugă la preț'}
+          >
+            <Input id="p-proiect" value={s.proiectare} onChange={(e) => set('proiectare', e.target.value)} invalid={!!errors.proiectare} suffix="h" placeholder="0" />
+          </Field>
         </div>
-
-        <Field label="Material">
-          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Material">
-            {materials.map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="radio"
-                aria-checked={s.material === m}
-                onClick={() => set('material', m)}
-                className={`h-8 rounded-[10px] border px-3 text-sm transition-colors ${s.material === m ? 'border-accent bg-accent text-white shadow-glow' : 'border-line text-muted hover:border-fg hover:text-fg'}`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-        </Field>
 
         {/* Calculator */}
         <div className="rounded-tile border border-line bg-glass/60">
           <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
             <span className="label flex items-center gap-2">
-              <Calculator className="h-3.5 w-3.5" /> Calculator cost · adaos {settings.adaos_procent}%
+              <Calculator className="h-3.5 w-3.5" /> Calculator · adaos {settings.adaos_procent}% la material
             </span>
           </div>
           <dl className="num grid grid-cols-2 divide-x divide-line text-sm">
             {[
               ['Cost material', lei(cost.material, { decimals: true })],
-              ['Cost / bucată', lei(cost.total / Math.max(1, Number(pieces) || 1), { decimals: true })],
+              ['Proiectare', lei(cost.design, { decimals: true })],
             ].map(([k, v]) => (
               <div key={k} className="px-4 py-2.5">
                 <dt className="label">{k}</dt>

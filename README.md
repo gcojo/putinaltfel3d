@@ -50,7 +50,9 @@ Migrațiile creează tabelele (clienți, comenzi, încasări, setări, istoric),
 2. Apasă **New query** (sau **+**).
 3. Deschide pe calculator fișierul `supabase/migrations/0001_schema.sql`, copiază **tot** conținutul și lipește-l în editor.
 4. Apasă **Run** (sau `Ctrl + Enter`). Trebuie să apară *Success. No rows returned*.
-5. Repetă pașii 2–4 cu fișierul `supabase/migrations/0002_storage.sql`, apoi cu `supabase/migrations/0003_grants.sql`.
+5. Repetă pașii 2–4 cu fișierul `supabase/migrations/0002_storage.sql`, apoi cu `supabase/migrations/0003_grants.sql`, apoi cu `supabase/migrations/0004_proiectare_stoc_catalog.sql`.
+
+> **Ai deja aplicația instalată?** Rulează doar `0004_proiectare_stoc_catalog.sql` (o singură dată). Adaugă taxa de proiectare, comenzile cu mai multe culori, stocul de filament și catalogul. Până o rulezi, restul aplicației merge normal, iar paginile Catalog și Filament îți arată ce ai de făcut.
 
 > Migrațiile pot fi rulate de mai multe ori fără probleme.
 
@@ -235,6 +237,35 @@ O comandă fără grame/timp nu poate intra în coadă: dacă încerci, se desch
 - **Profit estimat** = preț − material. Costul curentului nu intră în calcule.
 - **Preț sugerat** = cost material × (1 + adaos %), rotunjit în sus la 5 lei. Butonul **Aplică** îl copiază în câmpul de preț.
 - Când schimbi prețul unui filament în Setări, costul se recalculează automat doar pentru comenzile încă neprintate (Nouă / În coadă).
+
+### Taxă de proiectare
+
+În Setări pui **tariful de proiectare** (lei/oră). La fiecare comandă scrii cât ai proiectat („Timp de proiectare”, ex. `1.5` sau `1h 30m`).
+**Preț sugerat** = material × (1 + adaos) + ore proiectare × tarif, rotunjit în sus la 5 lei. Adaosul se aplică doar materialului.
+
+### Lipire din Bambu Studio
+
+În „Date de print” (și în formularul de comandă sau de produs) există câmpul **„Lipește aici rezumatul din Bambu Studio”**: copiezi textul cu timpul și gramele din slicer și îl lipești (Ctrl+V). Gramele și durata se completează singure. Dacă textul are mai multe filamente și niciun „total”, gramele se adună.
+
+### Mai multe culori pe o comandă
+
+În „Date de print” → **Mai multe culori**: câte un rând pentru fiecare material/culoare, cu gramele lui. Costul folosește prețul fiecărui material, iar stocul scade separat pentru fiecare culoare.
+
+### Stoc de filament (pagina Filament)
+
+- **Rolă nouă**: material, culoare, grame (de obicei 1000 g) și câte role.
+- Când o comandă devine **Finalizată**, gramele ei se scad automat din stoc. Dacă o readuci înapoi (ex. „Anulează”), consumul se anulează.
+- **Corectează**: cântărești rola și scrii câte grame ai de fapt.
+- Pe Dashboard apare o atenționare dacă **nu ajunge filamentul** pentru comenzile din coadă sau dacă o rolă are sub 150 g.
+- Stocul se ține doar pentru combinațiile material + culoare pentru care ai adăugat role. Culorile se potrivesc fără să conteze literele mari/mici.
+
+### Catalog de produse
+
+Produsele pe care le faci des, cu valori **pe bucată** (grame, timp, preț). Din Catalog → **Comandă**, sau din formularul de comandă nouă → „Din catalog…”: gramele, timpul și prețul se înmulțesc automat cu numărul de bucăți. Din panoul unei comenzi, iconița 📖 o salvează în catalog (valorile se împart la numărul de bucăți).
+
+### Notificări când e gata printul
+
+Setări → **Pornește notificările**. Primești un anunț la ora estimată de final cât timp aplicația e deschisă (sau în fundal, pe calculator / Android). Pentru o alarmă sigură pe telefon, chiar cu aplicația închisă, apasă în comanda care se printează **„Alarmă în calendar la final”**: se descarcă un eveniment de calendar cu alarmă.
 
 ### Încasări
 

@@ -17,6 +17,8 @@ export interface Settings {
   /** YYYY-MM-DD */
   date_libere: string[];
   adaos_procent: number;
+  /** lipsește până la rularea migrației 0004 */
+  tarif_proiectare_lei_ora?: number;
   updated_at: string;
 }
 
@@ -63,9 +65,52 @@ export interface Order {
   /** calea în bucket-ul „poze-comenzi” */
   poza_url: string | null;
   pozitie_in_coada: number | null;
+  /** ore de proiectare (taxa = ore × tarif din setări); lipsește înainte de migrația 0004 */
+  ore_proiectare?: number;
+  /** comandă cu mai multe culori / materiale; null = un singur material */
+  componente?: Component[] | null;
   created_at: string;
   updated_at: string;
 }
+
+/** O parte dintr-o comandă multicoloră (grame totale pentru toată comanda). */
+export interface Component {
+  material: string;
+  culoare: string | null;
+  grame: number;
+}
+
+export interface FilamentMove {
+  id: number;
+  user_id: string;
+  material: string;
+  culoare: string | null;
+  /** + rolă adăugată, − consum */
+  grame: number;
+  tip: 'rola' | 'comanda' | 'ajustare';
+  order_id: number | null;
+  note: string | null;
+  created_at: string;
+}
+
+/** Produs din catalog: valori PE BUCATĂ. */
+export interface Product {
+  id: number;
+  user_id: string;
+  nume: string;
+  descriere: string | null;
+  material: string;
+  culoare: string | null;
+  componente: Component[] | null;
+  grame: number;
+  ore: number;
+  pret: number;
+  note: string | null;
+  created_at: string;
+}
+
+export type ProductInput = Omit<Product, 'id' | 'user_id' | 'created_at'>;
+export type FilamentMoveInput = Pick<FilamentMove, 'material' | 'culoare' | 'grame' | 'tip' | 'note'>;
 
 export interface Payment {
   id: number;
@@ -93,7 +138,7 @@ export type OrderInput = Pick<
   Order,
   | 'client_id' | 'titlu' | 'descriere' | 'material' | 'culoare' | 'grame_filament' | 'durata_print_ore'
   | 'nr_bucati' | 'pret_vanzare' | 'status' | 'prioritate' | 'data_comanda' | 'deadline' | 'note' | 'poza_url'
->;
+> & Partial<Pick<Order, 'ore_proiectare' | 'componente'>>;
 
 export type ClientInput = Pick<Client, 'nume' | 'telefon' | 'email' | 'oras' | 'note'>;
 

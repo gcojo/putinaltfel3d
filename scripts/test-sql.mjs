@@ -28,6 +28,8 @@ await db.exec(`
 await db.exec(read('supabase/migrations/0001_schema.sql'));
 await db.exec(read('supabase/migrations/0002_storage.sql'));
 await db.exec(read('supabase/migrations/0003_grants.sql'));
+await db.exec(read('supabase/migrations/0004_proiectare_stoc_catalog.sql'));
+await db.exec(read('supabase/migrations/0004_proiectare_stoc_catalog.sql')); // idempotentă
 console.log('✓ migrații aplicate');
 
 // setări create automat pentru userul existent; userul B primește setări prin trigger
@@ -117,6 +119,38 @@ await as(A, async () => {
   await db.query(`delete from orders where id=$1`, [t.id]);
 });
 console.log('✓ flux complet comandă: coadă, reordonare, printare, finalizare, încasări, istoric, ștergere');
+
+// 0004: componente, stoc filament, catalog
+await as(A, async () => {
+  const m = await db.query(`insert into orders (titlu, material, grame_filament, durata_print_ore, componente)
+    values ('Multicolor', 'PLA', 200, 3, '[{"material":"PLA","culoare":"Alb test","grame":100},{"material":"TPU","culoare":"Negru test","grame":100}]')
+    returning id, cost_material::float c, ore_proiectare::float p`);
+  assert.equal(m.rows[0].c, 27); // 100 g PLA (100 lei/kg) + 100 g TPU (170 lei/kg)
+  assert.equal(m.rows[0].p, 0);
+
+  await db.query(`insert into filament_moves (material, culoare, grame, tip) values ('PLA', 'Alb test', 1000, 'rola')`);
+  const stock = async () => (await db.query(`select coalesce(sum(grame),0)::float g from filament_moves where material='PLA' and lower(culoare)='alb test'`)).rows[0].g;
+  await db.query(`update orders set status='finalizata' where id=$1`, [m.rows[0].id]);
+  assert.equal(await stock(), 900);
+  const tpu = (await db.query(`select sum(grame)::float g from filament_moves where material='TPU' and culoare='Negru test'`)).rows[0].g;
+  assert.equal(tpu, -100);
+  await db.query(`update orders set status='livrata' where id=$1`, [m.rows[0].id]);
+  assert.equal(await stock(), 900, 'livrata după finalizata nu mai scade încă o dată');
+  await db.query(`update orders set status='in_coada' where id=$1`, [m.rows[0].id]);
+  assert.equal(await stock(), 1000, 'revenirea din finalizată anulează consumul');
+
+  const pr = await db.query(`insert into products (nume, grame, ore, pret) values ('Breloc', 12, 0.5, 15) returning id`);
+  assert.ok(pr.rows[0].id);
+  const t = await db.query(`select tarif_proiectare_lei_ora::float t from settings`);
+  assert.equal(t.rows[0].t, 50);
+});
+await as(B, async () => {
+  for (const t of ['filament_moves', 'products']) {
+    const r = await db.query(`select count(*)::int n from ${t}`);
+    assert.equal(r.rows[0].n, 0, `B vede ${t}`);
+  }
+});
+console.log('✓ 0004: cost multicolor, stoc filament (consum + anulare), catalog, RLS');
 
 // storage: folder propriu permis, folder străin refuzat
 await db.exec(`grant usage on schema storage to authenticated; grant all on storage.objects to authenticated; grant usage, select on all sequences in schema storage to authenticated;`);

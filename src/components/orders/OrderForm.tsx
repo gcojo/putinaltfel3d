@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calculator, ChevronDown, ImagePlus, PencilRuler, Sparkles, Trash2 } from 'lucide-react';
-import type { Client, Order, OrderInput, OrderStatus, PaymentMethod, Priority } from '@/types/db';
+import { BookOpen, Calculator, ChevronDown, ImagePlus, PencilRuler, Sparkles, Trash2 } from 'lucide-react';
+import type { Client, Component, Order, OrderInput, OrderStatus, PaymentMethod, Priority, Product } from '@/types/db';
 import * as api from '@/lib/api';
 import { costBreakdown } from '@/lib/calc';
 import { DEFAULT_MATERIALS, PAYMENT_METHODS, PRIORITIES, STATUSES } from '@/lib/constants';
-import { dateTime, deadlineEnd, hours, lei, parseYmd, signedHours, toYmd, todayYmd } from '@/lib/format';
+import { dateTime, deadlineEnd, hours, lei, parseYmd, signedHours, smart, toYmd, todayYmd } from '@/lib/format';
 import { parseDuration, parseNumber } from '@/lib/parse';
 import { estimateIfAppended } from '@/lib/schedule';
 import { missingPrintInfo } from '@/lib/design';
+import { componentsLabel } from '@/lib/stock';
 import { useData } from '@/hooks/useData';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Segmented, Select, Textarea } from '@/components/ui/Field';
@@ -16,6 +17,7 @@ import { useFeedback } from '@/components/ui/Toast';
 import { SlideOver } from '@/components/ui/SlideOver';
 import { usePhotoUrl } from './usePhotoUrl';
 import { ClientPicker, matchClient } from './ClientPicker';
+import { SlicerPaste, StockHint } from './printFields';
 
 interface FormState {
   /** '' = fără client sau client nou (după `client_text`) | id client existent */
@@ -29,6 +31,9 @@ interface FormState {
   culoare: string;
   grame_filament: string;
   durata_print_ore: string;
+  ore_proiectare: string;
+  /** comandă multicoloră (se editează din „Date de print”) */
+  componente: Component[] | null;
   nr_bucati: string;
   pret_vanzare: string;
   status: OrderStatus;
@@ -76,6 +81,8 @@ function fromOrder(o: Partial<Order> | undefined, clients: Client[]): FormState 
     culoare: o?.culoare ?? '',
     grame_filament: Number(o?.grame_filament) > 0 ? String(o!.grame_filament) : '',
     durata_print_ore: Number(o?.durata_print_ore) > 0 ? String(o!.durata_print_ore) : '',
+    ore_proiectare: Number(o?.ore_proiectare) > 0 ? String(o!.ore_proiectare) : '',
+    componente: o?.componente?.length ? o.componente : null,
     nr_bucati: String(o?.nr_bucati ?? 1),
     pret_vanzare: o?.pret_vanzare != null ? String(o.pret_vanzare) : '',
     status: o?.status ?? 'noua',
@@ -95,6 +102,7 @@ function validate(f: FormState): Errors {
   // gramele și durata sunt opționale: se pot completa după proiectare
   if (f.grame_filament.trim() !== '' && (!isNum(f.grame_filament) || toNum(f.grame_filament) < 0)) e.grame_filament = 'Gramele nu sunt valide.';
   if (f.durata_print_ore.trim() !== '' && (!isHours(f.durata_print_ore) || toHours(f.durata_print_ore) < 0)) e.durata_print_ore = 'Durată invalidă (ex. 3.5 sau 2h 35m).';
+  if (f.ore_proiectare.trim() !== '' && (!isHours(f.ore_proiectare) || toHours(f.ore_proiectare) < 0)) e.ore_proiectare = 'Ore invalide (ex. 1.5 sau 1h 30m).';
   if (!isNum(f.nr_bucati) || !Number.isInteger(toNum(f.nr_bucati)) || toNum(f.nr_bucati) < 1) e.nr_bucati = 'Minim 1 bucată.';
   if (f.pret_vanzare.trim() !== '' && (!isNum(f.pret_vanzare) || toNum(f.pret_vanzare) < 0)) e.pret_vanzare = 'Preț invalid.';
   if (!f.data_comanda) e.data_comanda = 'Alege data comenzii.';
@@ -107,15 +115,17 @@ function validate(f: FormState): Errors {
 const uniq = (list: (string | null)[], max = 200) => [...new Set(list.map((s) => s?.trim()).filter((s): s is string => !!s))].slice(0, max);
 
 export function OrderFormPanel({
-  open, order, prefill, onClose, onSaved,
+  open, order, prefill, productId: fromCatalog, onClose, onSaved,
 }: {
   open: boolean;
   order?: Order;
   prefill?: Partial<Order>;
+  /** comandă nouă dintr-un produs din catalog */
+  productId?: number;
   onClose: () => void;
   onSaved: (o: Order) => void;
 }) {
-  const { clients, orders, settings, schedule, reload } = useData();
+  const { clients, orders, settings, schedule, reload, products, migrated } = useData();
   const { toast, confirm } = useFeedback();
   const [f, setF] = useState<FormState>(() => fromOrder(order ?? prefill, clients));
   const [errors, setErrors] = useState<Errors>({});
@@ -127,6 +137,8 @@ export function OrderFormPanel({
   const hasPrintInfo = (o?: Partial<Order>) => Number(o?.grame_filament) > 0 || Number(o?.durata_print_ore) > 0;
   const [showPrint, setShowPrint] = useState(() => !!order || hasPrintInfo(prefill));
   const [usedTemplate, setUsedTemplate] = useState<number | null>(null);
+  /** produsul din catalog aplicat: gramele / timpul / prețul urmează numărul de bucăți */
+  const [productId, setProductId] = useState<number | null>(null);
   const uploadedRef = useRef<string | null>(null);
   const initialRef = useRef('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -137,6 +149,7 @@ export function OrderFormPanel({
     initialRef.current = JSON.stringify(state);
     setErrors({});
     setUsedTemplate(null);
+    setProductId(null);
     uploadedRef.current = null;
   };
 
@@ -146,14 +159,56 @@ export function OrderFormPanel({
       setMarkup(String(settings.adaos_procent));
       setShowMore(!!order);
       setShowPrint(!!order || hasPrintInfo(prefill));
+      const p = fromCatalog ? products.find((x) => x.id === fromCatalog) : undefined;
+      if (p && !order) applyProduct(p);
     }
     // `clients` lipsește intenționat: o reîncărcare a datelor nu trebuie să golească formularul
-  }, [open, order, prefill, settings.adaos_procent]);
+  }, [open, order, prefill, fromCatalog, settings.adaos_procent]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setF((s) => ({ ...s, [k]: v }));
     if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined }));
   };
+  /** editare manuală a datelor de print: nu mai urmărim produsul din catalog */
+  const setPrint = <K extends 'grame_filament' | 'durata_print_ore' | 'pret_vanzare'>(k: K, v: string) => {
+    setProductId(null);
+    set(k, v);
+  };
+
+  /** Valorile din catalog sunt PE BUCATĂ: se înmulțesc cu numărul de bucăți. */
+  const productValues = (p: Product, n: number): Partial<FormState> => {
+    const r = (x: number) => String(Math.round(x * 100) / 100);
+    const comp = p.componente?.length ? p.componente.map((c) => ({ ...c, grame: Math.round(Number(c.grame) * n * 100) / 100 })) : null;
+    return {
+      material: comp ? comp[0].material : p.material,
+      culoare: comp ? componentsLabel(comp) : p.culoare ?? '',
+      componente: comp,
+      grame_filament: Number(p.grame) > 0 ? r(Number(p.grame) * n) : '',
+      durata_print_ore: Number(p.ore) > 0 ? r(Number(p.ore) * n) : '',
+      pret_vanzare: Number(p.pret) > 0 ? r(Number(p.pret) * n) : '',
+    };
+  };
+  const applyProduct = (p: Product) => {
+    setF((s) => {
+      const n = isNum(s.nr_bucati) && toNum(s.nr_bucati) >= 1 ? toNum(s.nr_bucati) : 1;
+      return { ...s, titlu: s.titlu.trim() ? s.titlu : p.nume, descriere: s.descriere || (p.descriere ?? ''), ...productValues(p, n) };
+    });
+    setErrors({});
+    setProductId(p.id);
+    setShowPrint(Number(p.grame) > 0 || Number(p.ore) > 0);
+  };
+  const product = productId ? products.find((p) => p.id === productId) : undefined;
+  // alt număr de bucăți -> recalculează din catalog
+  useEffect(() => {
+    if (!product || !isNum(f.nr_bucati) || toNum(f.nr_bucati) < 1) return;
+    setF((s) => ({ ...s, ...productValues(product, toNum(s.nr_bucati)) }));
+  }, [f.nr_bucati, productId]);
+  // titlul scris = un produs din catalog?
+  const catalogMatch = useMemo(() => {
+    if (order || productId) return undefined;
+    const n = f.titlu.trim().toLowerCase();
+    return n.length >= 2 ? products.find((p) => p.nume.trim().toLowerCase() === n) : undefined;
+  }, [products, f.titlu, order, productId]);
 
   const materials = useMemo(() => {
     const list = Object.keys(settings.pret_filament_lei_kg ?? {});
@@ -180,8 +235,10 @@ export function OrderFormPanel({
         ...s,
         material: o.material,
         culoare: o.culoare ?? '',
+        componente: o.componente?.length ? o.componente : null,
         grame_filament: String(o.grame_filament),
         durata_print_ore: String(o.durata_print_ore),
+        ore_proiectare: '',
         nr_bucati: String(o.nr_bucati),
         pret_vanzare: String(o.pret_vanzare),
         descriere: s.descriere || (o.descriere ?? ''),
@@ -200,6 +257,8 @@ export function OrderFormPanel({
       grame_filament: isNum(f.grame_filament) ? toNum(f.grame_filament) : 0,
       durata_print_ore: isHours(f.durata_print_ore) ? toHours(f.durata_print_ore) : 0,
       nr_bucati: isNum(f.nr_bucati) ? toNum(f.nr_bucati) : 1,
+      ore_proiectare: isHours(f.ore_proiectare) ? toHours(f.ore_proiectare) : 0,
+      componente: f.componente,
     },
     isNum(markup) ? toNum(markup) : Number(settings.adaos_procent),
   );
@@ -285,6 +344,8 @@ export function OrderFormPanel({
         grame_filament: f.grame_filament.trim() ? toNum(f.grame_filament) : 0,
         durata_print_ore: f.durata_print_ore.trim() ? Math.round(toHours(f.durata_print_ore) * 100) / 100 : 0,
         nr_bucati: toNum(f.nr_bucati),
+        ore_proiectare: f.ore_proiectare.trim() ? Math.round(toHours(f.ore_proiectare) * 100) / 100 : 0,
+        ...(migrated ? { componente: f.componente } : {}),
         pret_vanzare: f.pret_vanzare.trim() === '' ? 0 : toNum(f.pret_vanzare),
         status: f.status,
         prioritate: f.prioritate,
@@ -373,6 +434,30 @@ export function OrderFormPanel({
         noValidate
         className="flex flex-col gap-5 px-5 py-5"
       >
+        {!order && products.length > 0 && (
+          <div className="flex items-center gap-2.5 rounded-tile border border-line bg-glass/60 px-3 py-2">
+            <BookOpen className="h-4 w-4 shrink-0 text-accent" />
+            <Select
+              aria-label="Din catalog"
+              value={productId ?? ''}
+              onChange={(e) => {
+                const p = products.find((x) => x.id === Number(e.target.value));
+                if (p) applyProduct(p);
+                else setProductId(null);
+              }}
+              className="flex-1"
+            >
+              <option value="">Din catalog… (opțional)</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nume}
+                  {Number(p.pret) > 0 ? ` · ${lei(Number(p.pret))}/buc` : ''}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+
         <Field label="Titlu" error={errors.titlu} htmlFor="f-titlu">
           <Input
             id="f-titlu"
@@ -397,6 +482,16 @@ export function OrderFormPanel({
             >
               <Sparkles className="h-3.5 w-3.5 text-accent" />
               Ai mai făcut-o (#{template.id}) · completează gramele, durata și prețul
+            </button>
+          )}
+          {catalogMatch && (
+            <button
+              type="button"
+              onClick={() => applyProduct(catalogMatch)}
+              className="flex items-center gap-2 self-start rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs text-fg transition-colors hover:bg-accent/20"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-accent" />
+              E în catalog · completează gramele, timpul și prețul
             </button>
           )}
         </Field>
@@ -443,7 +538,12 @@ export function OrderFormPanel({
               ))}
             </datalist>
           </Field>
-          <Field label="Nr. bucăți" error={errors.nr_bucati} htmlFor="f-buc">
+          <Field
+            label="Nr. bucăți"
+            error={errors.nr_bucati}
+            htmlFor="f-buc"
+            hint={product ? `din catalog · ${lei(Number(product.pret))}/buc` : undefined}
+          >
             <Input id="f-buc" inputMode="numeric" value={f.nr_bucati} onChange={(e) => set('nr_bucati', e.target.value)} invalid={!!errors.nr_bucati} />
           </Field>
         </div>
@@ -460,9 +560,33 @@ export function OrderFormPanel({
           </div>
         ) : (
         <>
+        <SlicerPaste
+          onFound={(info) => {
+            setProductId(null);
+            setF((s) => ({
+              ...s,
+              ...(info.hours != null ? { durata_print_ore: String(info.hours) } : {}),
+              ...(info.grams != null && !s.componente?.length ? { grame_filament: String(info.grams) } : {}),
+            }));
+          }}
+        />
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Filament total" error={errors.grame_filament} htmlFor="f-grame">
-            <Input id="f-grame" inputMode="decimal" value={f.grame_filament} onChange={(e) => set('grame_filament', e.target.value)} invalid={!!errors.grame_filament} suffix="g" placeholder="0" />
+          <Field
+            label="Filament total"
+            error={errors.grame_filament}
+            htmlFor="f-grame"
+            hint={f.componente?.length ? `${componentsLabel(f.componente)} · culorile se schimbă din „Date de print”` : undefined}
+          >
+            <Input
+              id="f-grame"
+              inputMode="decimal"
+              value={f.grame_filament}
+              onChange={(e) => setPrint('grame_filament', e.target.value)}
+              invalid={!!errors.grame_filament}
+              suffix="g"
+              placeholder="0"
+              readOnly={!!f.componente?.length}
+            />
           </Field>
           <Field
             label="Durată print totală"
@@ -470,8 +594,19 @@ export function OrderFormPanel({
             hint={isHours(f.durata_print_ore) && !isNum(f.durata_print_ore) ? `= ${hours(toHours(f.durata_print_ore))}` : 'merge și „2h 35m” din Bambu'}
             htmlFor="f-ore"
           >
-            <Input id="f-ore" value={f.durata_print_ore} onChange={(e) => set('durata_print_ore', e.target.value)} invalid={!!errors.durata_print_ore} suffix="h" placeholder="3.5" />
+            <Input id="f-ore" value={f.durata_print_ore} onChange={(e) => setPrint('durata_print_ore', e.target.value)} invalid={!!errors.durata_print_ore} suffix="h" placeholder="3.5" />
           </Field>
+          <Field
+            label="Timp de proiectare"
+            error={errors.ore_proiectare}
+            htmlFor="f-proiect"
+            hint={cost.design > 0 ? `= ${lei(cost.design)} (${smart(Number(settings.tarif_proiectare_lei_ora ?? 0))} lei/oră)` : 'opțional · se adaugă la preț'}
+          >
+            <Input id="f-proiect" value={f.ore_proiectare} onChange={(e) => set('ore_proiectare', e.target.value)} invalid={!!errors.ore_proiectare} suffix="h" placeholder="0" />
+          </Field>
+          <div className="flex items-end pb-2">
+            <StockHint material={f.material} culoare={f.culoare} need={isNum(f.grame_filament) ? toNum(f.grame_filament) : 0} />
+          </div>
         </div>
 
         {/* Calculator automat */}
@@ -495,7 +630,7 @@ export function OrderFormPanel({
           <dl className="num grid grid-cols-2 divide-x divide-line text-sm">
             {[
               ['Cost material', lei(cost.material, { decimals: true })],
-              ['Cost / bucată', lei(cost.total / Math.max(1, Number(f.nr_bucati) || 1), { decimals: true })],
+              ['Proiectare', lei(cost.design, { decimals: true })],
             ].map(([k, v]) => (
               <div key={k} className="px-4 py-2.5">
                 <dt className="label">{k}</dt>
@@ -518,7 +653,7 @@ export function OrderFormPanel({
                   <span className={profit < 0 ? 'text-critical' : 'text-fg'}>{lei(profit)}</span>
                 </span>
               )}
-              <Button size="sm" onClick={() => set('pret_vanzare', String(cost.suggested))} disabled={!cost.suggested}>
+              <Button size="sm" onClick={() => setPrint('pret_vanzare', String(cost.suggested))} disabled={!cost.suggested}>
                 Aplică
               </Button>
             </div>
@@ -535,7 +670,7 @@ export function OrderFormPanel({
                   ? 'Gol = 0 lei · apasă „Aplică” pentru prețul sugerat'
                   : 'Opțional · îl stabilești și după proiectare'
             }>
-            <Input id="f-pret" inputMode="decimal" value={f.pret_vanzare} onChange={(e) => set('pret_vanzare', e.target.value)} invalid={!!errors.pret_vanzare} suffix="lei" placeholder={cost.suggested ? String(cost.suggested) : '0'} />
+            <Input id="f-pret" inputMode="decimal" value={f.pret_vanzare} onChange={(e) => setPrint('pret_vanzare', e.target.value)} invalid={!!errors.pret_vanzare} suffix="lei" placeholder={cost.suggested ? String(cost.suggested) : '0'} />
           </Field>
           {!order && (
             <Field label="Încasat acum" error={errors.avans} htmlFor="f-avans" hint="Opțional · avans sau tot">

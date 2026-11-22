@@ -17,6 +17,8 @@ const ClientsPage = lazy(() => import('@/pages/Clients'));
 const ClientDetailPage = lazy(() => import('@/pages/ClientDetail'));
 const StatsPage = lazy(() => import('@/pages/Stats'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
+const CatalogPage = lazy(() => import('@/pages/Catalog'));
+const FilamentPage = lazy(() => import('@/pages/Filament'));
 
 function Splash() {
   return (
@@ -71,6 +73,8 @@ export function AppRoutes() {
           <Route path="coada" element={<QueuePage />} />
           <Route path="clienti" element={<ClientsPage />} />
           <Route path="clienti/:id" element={<ClientDetailPage />} />
+          <Route path="catalog" element={<CatalogPage />} />
+          <Route path="filament" element={<FilamentPage />} />
           <Route path="statistici" element={<StatsPage />} />
           <Route path="setari" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

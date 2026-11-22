@@ -4,6 +4,7 @@ import { amountDue } from './calc';
 import { BUSY_QUEUE_DAYS, OVERDUE_PAYMENT_DAYS } from './constants';
 import { dateTime, daysBetween, deadlineEnd, hours, lei, signedHours } from './format';
 import { needsDesign } from './design';
+import { LOW_STOCK_G, orderComponents, stockKey, type StockItem } from './stock';
 import { estimateIfAppended, suggestFix, type Schedule, type ScheduleSettings } from './schedule';
 
 /** Comandă neproiectată cu deadline mai aproape de atâtea zile = atenționare. */
@@ -35,6 +36,7 @@ export function buildWarnings(
   schedule: Schedule,
   s: ScheduleSettings,
   now = new Date(),
+  stock: StockItem[] = [],
 ): Warning[] {
   const out: Warning[] = [];
   const clientName = (o: Order) => clients.find((c) => c.id === o.client_id)?.nume;
@@ -127,6 +129,38 @@ export function buildWarnings(
         orders: [o],
         recommendation: 'Proiecteaz-o și adaugă gramele și timpul, ca să vezi dacă încape în coadă.',
         action: { kind: 'open', label: 'Deschide comanda', orderId: o.id },
+      });
+    }
+  }
+
+  // 4c. Filament: nu ajunge pentru comenzile programate / rolă pe terminate
+  for (const it of stock) {
+    const name = `${it.material}${it.culoare ? ` ${it.culoare}` : ''}`;
+    const missing = it.rezervat - it.grame;
+    if (it.rezervat > 0 && missing > 0) {
+      const users = orders.filter(
+        (o) => (o.status === 'in_coada' || o.status === 'se_printeaza') && orderComponents(o).some((c) => stockKey(c.material, c.culoare) === it.key),
+      );
+      out.push({
+        id: `stock-${it.key}`,
+        level: 'critical',
+        title: `Nu ai destul ${name}`,
+        metric: `−${Math.ceil(missing)} g`,
+        detail: `În stoc: ${Math.max(0, Math.round(it.grame))} g · necesar pentru coadă: ${Math.round(it.rezervat)} g`,
+        orders: users,
+        recommendation: 'Comandă o rolă nouă sau schimbă culoarea comenzilor.',
+        action: { kind: 'link', label: 'Deschide stocul', to: '/filament' },
+      });
+    } else if (it.grame < LOW_STOCK_G && it.moves.some((m) => m.tip === 'rola')) {
+      out.push({
+        id: `stock-low-${it.key}`,
+        level: 'warning',
+        title: `Se termină ${name}`,
+        metric: `${Math.max(0, Math.round(it.grame))} g`,
+        detail: `Au mai rămas sub ${LOW_STOCK_G} g.`,
+        orders: [],
+        recommendation: 'Pune o rolă nouă pe lista de cumpărături.',
+        action: { kind: 'link', label: 'Deschide stocul', to: '/filament' },
       });
     }
   }

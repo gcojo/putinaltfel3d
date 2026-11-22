@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, MessageCircle, Pencil, PencilRuler, Phone, Plus, Trash2, X } from 'lucide-react';
+import { BellRing, BookOpen, Copy, MessageCircle, Pencil, PencilRuler, Phone, Plus, Trash2, X } from 'lucide-react';
 import { messageTemplates, telLink, waLink } from '@/lib/contact';
-import type { Order, OrderEvent, PaymentMethod } from '@/types/db';
+import type { Order, OrderEvent, PaymentMethod, Product } from '@/types/db';
 import * as api from '@/lib/api';
-import { amountDue, orderProfit } from '@/lib/calc';
+import { amountDue, designFee, orderProfit } from '@/lib/calc';
+import { downloadFile, printAlarmIcs } from '@/lib/ics';
+import { ProductFormPanel } from '@/components/catalog/ProductForm';
 import { PAYMENT_METHODS } from '@/lib/constants';
 import { date, dateTime, grams, hours, lei, relativeDateTime, signedHours, smart, todayYmd } from '@/lib/format';
 import { parseNumber } from '@/lib/parse';
@@ -43,7 +45,7 @@ export function OrderDetailPanel({
   /** comandă nouă precompletată cu datele acesteia (comenzi repetate) */
   onDuplicate: (prefill: Partial<Order>) => void;
 }) {
-  const { orders, payments, settings, schedule, clientById, reload, now } = useData();
+  const { orders, payments, settings, schedule, clientById, reload, now, migrated } = useData();
   const { toast, confirm } = useFeedback();
   const changeStatus = useChangeStatus();
   const { editPrintInfo } = useOrderPanel();
@@ -53,6 +55,7 @@ export function OrderDetailPanel({
   const [payOpen, setPayOpen] = useState(false);
   const [pay, setPay] = useState({ suma: '', data: todayYmd(), metoda: 'numerar' as PaymentMethod });
   const [busy, setBusy] = useState(false);
+  const [toCatalog, setToCatalog] = useState<Partial<Product> | null>(null);
 
   const loadEvents = useCallback(async () => {
     if (!orderId) return;
@@ -90,6 +93,30 @@ export function OrderDetailPanel({
   const tel = telLink(client?.telefon);
   const templates = client?.telefon ? messageTemplates(order, client.nume) : [];
 
+  /** produs din catalog cu valorile PE BUCATĂ ale acestei comenzi */
+  const saveToCatalog = () => {
+    const n = Math.max(1, Number(order.nr_bucati) || 1);
+    const r = (x: number) => Math.round((x / n) * 100) / 100;
+    setToCatalog({
+      nume: order.titlu,
+      descriere: order.descriere,
+      material: order.material,
+      culoare: order.componente?.length ? null : order.culoare,
+      componente: order.componente?.length ? order.componente.map((c) => ({ ...c, grame: r(Number(c.grame)) })) : null,
+      grame: r(Number(order.grame_filament)),
+      ore: r(Number(order.durata_print_ore)),
+      pret: r(Number(order.pret_vanzare)),
+    });
+  };
+
+  const alarm = () => {
+    if (!item) return;
+    downloadFile(
+      `print-${order.id}.ics`,
+      printAlarmIcs({ id: order.id, title: `Printul #${order.id} e gata: ${order.titlu}`, end: item.end, description: 'Verifică imprimanta și marchează comanda finalizată.' }),
+    );
+  };
+
   const duplicate = () =>
     onDuplicate({
       client_id: order.client_id,
@@ -99,6 +126,7 @@ export function OrderDetailPanel({
       culoare: order.culoare,
       grame_filament: order.grame_filament,
       durata_print_ore: order.durata_print_ore,
+      componente: order.componente,
       nr_bucati: order.nr_bucati,
       pret_vanzare: order.pret_vanzare,
       prioritate: order.prioritate,
@@ -187,7 +215,12 @@ export function OrderDetailPanel({
           <Button icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => onEdit(order)}>
             Editează
           </Button>
-          <IconButton label="Duplică (comandă nouă la fel)" onClick={duplicate} className="ml-auto">
+          {!noInfo && migrated && (
+            <IconButton label="Salvează în catalog" onClick={saveToCatalog} className="ml-auto">
+              <BookOpen className="h-4 w-4" />
+            </IconButton>
+          )}
+          <IconButton label="Duplică (comandă nouă la fel)" onClick={duplicate} className={!noInfo && migrated ? '' : 'ml-auto'}>
             <Copy className="h-4 w-4" />
           </IconButton>
           <IconButton label="Șterge comanda" onClick={remove} className="hover:text-critical">
@@ -224,6 +257,9 @@ export function OrderDetailPanel({
                 <span className="text-sm text-muted">rămas {hours(item.remainingHours)}</span>
               </div>
               <ProgressBar value={item.progress} signal={item.overdue ? 'warning' : 'ok'} />
+              <button onClick={alarm} className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted hover:text-fg" title="Descarcă un eveniment de calendar cu alarmă la ora estimată de final">
+                <BellRing className="h-3.5 w-3.5" /> Alarmă în calendar la final
+              </button>
             </div>
           )}
           <div className="grid grid-cols-3 gap-4">
@@ -295,6 +331,9 @@ export function OrderDetailPanel({
         <div className="grid grid-cols-3 gap-4">
           <Stat label="Preț" value={lei(Number(order.pret_vanzare))} />
           <Stat label="Cost material" value={lei(Number(order.cost_material), { decimals: true })} />
+          {Number(order.ore_proiectare) > 0 && (
+            <Stat label="Proiectare" value={`${hours(Number(order.ore_proiectare))} · ≈ ${lei(designFee(settings, Number(order.ore_proiectare)))}`} />
+          )}
           <Stat label="Profit estimat" value={<span className={profit < 0 ? 'text-critical' : ''}>{lei(profit)}</span>} />
           <Stat label="Încasat" value={lei(Number(order.suma_incasata))} />
           <Stat label="Rest de plată" value={<span className={due > 0 && ['finalizata', 'livrata'].includes(order.status) ? 'text-warning' : ''}>{lei(due)}</span>} />
@@ -371,6 +410,17 @@ export function OrderDetailPanel({
           <Stat label="Deadline" value={date(order.deadline)} />
           <Stat label={order.data_finalizare ? 'Finalizată' : 'Început'} value={order.data_finalizare ? dateTime(order.data_finalizare) : dateTime(order.data_start)} />
         </div>
+        {order.componente && order.componente.length > 0 && (
+          <div className="mt-4 flex flex-col">
+            {order.componente.map((c, i) => (
+              <div key={i} className="num flex h-8 items-center gap-3 border-t border-line text-sm">
+                <span className="w-16 text-muted">{c.material}</span>
+                <span className="flex-1">{c.culoare || '—'}</span>
+                <span>{grams(Number(c.grame))}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {order.descriere && <p className="mt-4 whitespace-pre-wrap text-sm text-fg/90">{order.descriere}</p>}
         {order.note && (
           <p className="mt-3 whitespace-pre-wrap rounded border border-line bg-glass/60 px-3 py-2 text-sm text-muted">
@@ -413,6 +463,7 @@ export function OrderDetailPanel({
           </ol>
         )}
       </Section>
+      <ProductFormPanel open={!!toCatalog} prefill={toCatalog ?? undefined} onClose={() => setToCatalog(null)} />
     </SlideOver>
   );
 }
